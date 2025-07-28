@@ -6,6 +6,11 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  LOCATION_UNKNOWN
+}
 
 model device {
   device_id            Int     @id
@@ -13,4 +18,6 @@ model device {
   location_description String? @db.VarChar(50)
   longitude            Float?
   latitude             Float?
+  status               DeviceStatus? @default(LOCATION_UNKNOWN) // 預設為 位置未知
 }
+
