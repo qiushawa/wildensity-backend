@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model device {
+  device_id            Int     @id
+  device_name          String? @default("未命名設備") @db.VarChar(50)
+  location_description String? @db.VarChar(50)
+  longitude            Float?
+  latitude             Float?
+}
