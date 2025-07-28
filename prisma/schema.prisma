@@ -14,11 +14,26 @@ model device {
   longitude            Float?
   latitude             Float?
   status               DeviceStatus? @default(LOCATION_UNKNOWN)
+
+  appearance_records    appearance_record[] @relation("DeviceToAppearanceRecord")
 }
 
 model species {
-  species_id   Int    @id@default(autoincrement())
+  species_id   Int    @id @default(autoincrement())
   species_name String @db.VarChar(100)
+
+  appearance_records appearance_record[] @relation("SpeciesToAppearanceRecord")
+}
+
+model appearance_record { // 動物出現記錄 用於計算峰值
+  record_id   Int      @id @default(autoincrement())
+  device_id   Int
+  species_id  Int
+  count       Int      @default(1) // 出現次數 (加權值)
+  timestamp   DateTime @default(now())
+
+  device      device   @relation("DeviceToAppearanceRecord", fields: [device_id], references: [device_id])
+  species     species  @relation("SpeciesToAppearanceRecord", fields: [species_id], references: [species_id])
 }
 
 enum DeviceStatus {
