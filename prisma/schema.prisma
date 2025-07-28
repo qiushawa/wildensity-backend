@@ -6,18 +6,23 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model device {
+  device_id            Int           @id
+  device_name          String?       @default("未命名設備") @db.VarChar(50)
+  location_description String?       @db.VarChar(50)
+  longitude            Float?
+  latitude             Float?
+  status               DeviceStatus? @default(LOCATION_UNKNOWN)
+}
+
+model species {
+  species_id   Int    @id@default(autoincrement())
+  species_name String @db.VarChar(100)
+}
+
 enum DeviceStatus {
   ONLINE
   OFFLINE
   LOCATION_UNKNOWN
 }
-
-model device {
-  device_id            Int     @id
-  device_name          String? @default("未命名設備") @db.VarChar(50)
-  location_description String? @db.VarChar(50)
-  longitude            Float?
-  latitude             Float?
-  status               DeviceStatus? @default(LOCATION_UNKNOWN) // 預設為 位置未知
-}
-

@@ -1,7 +1,7 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import 'reflect-metadata';
 import bodyParser from 'body-parser';
-import apiRouter from './routes';
+import apiRouter from './routes/route';
 import { errorResponse } from './common/response';
 import { RESPONSE_CODE } from './common/code';
 import CONFIG from './config/config';
