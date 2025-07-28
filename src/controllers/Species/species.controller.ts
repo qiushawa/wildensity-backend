@@ -12,6 +12,9 @@ export class SpeciesController {
 
     async getSpecies(req: Request, res: Response): Promise<void> {
         const speciesId = parseInt(req.params.speciesId, 10);
+        if (isNaN(speciesId)) {
+            return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, '無效的物種ID');
+        }
         const species = await prisma.species.findUnique({
             where: { species_id: speciesId },
         });
