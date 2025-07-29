@@ -10,9 +10,9 @@ const controller = new DeviceController();
 deviceRouter.get('/', controller.getAllDevice);
 
 deviceRouter.route('/:deviceId')
-    .get(controller.getDevice)
-    .post(controller.createDevice)
-    .patch(controller.updateDevice)
-    .delete(controller.deleteDevice);
+    .get(controller.getDevice.bind(controller))
+    .post(controller.createDevice.bind(controller))
+    .patch(controller.updateDevice.bind(controller))
+    .delete(controller.deleteDevice.bind(controller));
 
 export default deviceRouter;

@@ -12,7 +12,9 @@ interface RecordData {
     leave_time: Date | null;
 }
 
+
 const CSV_HEADER = '紀錄編號,設備編號,物種編號,數量,平均速度,出現時間,離開時間';
+const UTF8_BOM = '\uFEFF';
 
 function toCSVRow(record: RecordData): string {
     return [
@@ -25,11 +27,13 @@ function toCSVRow(record: RecordData): string {
         record.leave_time ? record.leave_time.toISOString() : ''
     ].join(',');
 }
+
 function ensureDirExists(dir: string) {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
 }
+
 function getFilePath(record: RecordData): string {
     const year = format(record.appearance_time, 'yyyy');
     const month = format(record.appearance_time, 'MM');
@@ -38,18 +42,22 @@ function getFilePath(record: RecordData): string {
     return path.join(dir, `${month}.csv`);
 }
 
+// 共用寫入函數，包含 BOM
+function writeCSV(filePath: string, lines: string[]) {
+    const content = [CSV_HEADER, ...lines].join('\n');
+    fs.writeFileSync(filePath, UTF8_BOM + content + '\n', 'utf-8');
+}
+
 // ✅ 寫入新紀錄（追加）
 export async function appendRecordToCSV(record: RecordData): Promise<void> {
     const filePath = getFilePath(record);
-    const isNewFile = !fs.existsSync(filePath);
     const row = toCSVRow(record);
 
-    const stream = fs.createWriteStream(filePath, { flags: 'a' });
-    if (isNewFile) {
-        stream.write(CSV_HEADER + '\n');
+    if (!fs.existsSync(filePath)) {
+        writeCSV(filePath, [row]); // 新檔案含標題與 BOM
+    } else {
+        fs.appendFileSync(filePath, row + '\n', 'utf-8'); // 舊檔案不需重複寫入標題
     }
-    stream.write(row + '\n');
-    stream.end();
 }
 
 // ✅ 更新已有紀錄（根據 record_id）
@@ -57,21 +65,17 @@ export async function updateRecordInCSV(record: RecordData): Promise<void> {
     const filePath = getFilePath(record);
     if (!fs.existsSync(filePath)) return;
 
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.trim().split('\n');
+    const raw = fs.readFileSync(filePath, 'utf-8').replace(UTF8_BOM, '');
+    const lines = raw.trim().split('\n');
 
-    const updatedLines = lines.map((line, index) => {
-        if (index === 0) return line; // 保留 header 行
-
+    const dataLines = lines.slice(1); // 去掉標題行
+    const updated = dataLines.map(line => {
         const cols = line.split(',');
-
-        if (cols.length < 1) return line; // 空行或錯誤行直接跳過
-
         const lineRecordId = parseInt(cols[0], 10);
         return !isNaN(lineRecordId) && lineRecordId === record.record_id
             ? toCSVRow(record)
             : line;
     });
 
-    fs.writeFileSync(filePath, updatedLines.join('\n') + '\n', 'utf-8');
+    writeCSV(filePath, updated);
 }
