@@ -1,6 +1,7 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import { format } from 'date-fns';
+import { UTF8_BOM, CSV_HEADER } from '../config/config';
 
 interface RecordData {
     record_id: number;
@@ -12,61 +13,118 @@ interface RecordData {
     leave_time: Date | null;
 }
 
-const CSV_HEADER = 'record_id,device_id,species_id,count,average_speed,appearance_time,leave_time';
+/**
+ * 將字段轉換為 CSV 格式，處理特殊字符和引號
+ * @param field 欲轉換的字段
+ * @returns 處理後的 CSV 字段
+ */
+function safeValue(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') return ''; // or JSON.stringify(value)
+    return String(value);
+}
 
+/**
+ * 將 RecordData 轉換為 CSV 行
+ * @param record 欲轉換的紀錄
+ * @returns CSV 格式的行
+ */
 function toCSVRow(record: RecordData): string {
     return [
-        record.record_id,
-        record.device_id,
-        record.species_id,
-        record.count ?? '',
-        record.average_speed ?? '',
+        safeValue(record.record_id),
+        safeValue(record.device_id),
+        safeValue(record.species_id),
+        safeValue(record.count),
+        safeValue(record.average_speed),
         record.appearance_time.toISOString(),
         record.leave_time ? record.leave_time.toISOString() : ''
     ].join(',');
 }
 
+/**
+ * 確保目錄存在，若不存在則創建
+ * @param dir 欲確保存在的目錄
+ */
+async function ensureDirExists(dir: string): Promise<void> {
+    try {
+        await fs.mkdir(dir, { recursive: true });
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+            throw error;
+        }
+    }
+}
+
+/**
+ * 根據紀錄的 appearance_time 獲取對應的 CSV 檔案路徑
+ * @param record 欲獲取檔案路徑的紀錄
+ * @returns 檔案路徑
+ */
 function getFilePath(record: RecordData): string {
     const year = format(record.appearance_time, 'yyyy');
     const month = format(record.appearance_time, 'MM');
-    return path.join('storage', 'records', year, `${month}.csv`);
+    const dir = path.join('records', year);
+    return path.join(dir, `${month}.csv`);
 }
 
-// ✅ 寫入新紀錄（追加）
+/**
+ * 寫入 CSV 檔案，包含 UTF-8 BOM 和標題行
+ * @param filePath 欲寫入的檔案路徑
+ * @param lines 欲寫入的行數組
+ */
+async function writeCSV(filePath: string, lines: string[]): Promise<void> {
+    const content = [CSV_HEADER, ...lines].join('\n');
+    await fs.writeFile(filePath, UTF8_BOM + content + '\n', 'utf-8');
+}
+
+/**
+ * ✅ 新增紀錄到 CSV 檔案
+ * 若檔案不存在則創建，並寫入標題行和 BOM
+ * 若檔案已存在則追加新紀錄
+ * @param record 欲新增的紀錄
+ */
 export async function appendRecordToCSV(record: RecordData): Promise<void> {
     const filePath = getFilePath(record);
-    const isNewFile = !fs.existsSync(filePath);
     const row = toCSVRow(record);
 
-    const stream = fs.createWriteStream(filePath, { flags: 'a' });
-    if (isNewFile) {
-        stream.write(CSV_HEADER + '\n');
+    try {
+        await ensureDirExists(path.dirname(filePath));
+        try {
+            await fs.access(filePath);
+            await fs.appendFile(filePath, row + '\n', 'utf-8');
+        } catch {
+            await writeCSV(filePath, [row]);
+        }
+    } catch (error) {
+        throw new Error(`Failed to append record to CSV: ${error}`);
     }
-    stream.write(row + '\n');
-    stream.end();
 }
 
-// ✅ 更新已有紀錄（根據 record_id）
+/**
+ * ✅ 更新 CSV 檔案中的紀錄
+ * 根據紀錄的 record_id 更新對應行
+ * @param record 欲更新的紀錄
+ */
 export async function updateRecordInCSV(record: RecordData): Promise<void> {
     const filePath = getFilePath(record);
-    if (!fs.existsSync(filePath)) return;
+    
+    try {
+        await fs.access(filePath);
+    } catch {
+        return; // File doesn't exist, nothing to update
+    }
 
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
-
-    const updatedLines = lines.map((line, index) => {
-        if (index === 0) return line; // 保留 header 行
-
+    const raw = await fs.readFile(filePath, 'utf-8');
+    const cleanRaw = raw.replace(UTF8_BOM, '');
+    const lines = cleanRaw.trim().split('\n');
+    const dataLines = lines.slice(1); // 去掉標題行
+    const updated = dataLines.map(line => {
         const cols = line.split(',');
-
-        // 檢查是否為有效數據行，且 record_id 欄位符合
         const lineRecordId = parseInt(cols[0], 10);
-        if (!isNaN(lineRecordId) && lineRecordId === record.record_id) {
-            return toCSVRow(record); // 替換該筆紀錄
-        }
-
-        return line;
+        return !isNaN(lineRecordId) && lineRecordId === record.record_id
+            ? toCSVRow(record)
+            : line;
     });
 
-    fs.writeFileSync(filePath, updatedLines.join('\n'), 'utf-8');
+    await writeCSV(filePath, updated);
 }

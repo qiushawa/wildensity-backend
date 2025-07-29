@@ -4,9 +4,9 @@ const recordRouter = Router();
 
 const controller = new RecordController();
 recordRouter.route('/')
-    .post(controller.createRecord);
+    .post(controller.createRecord.bind(controller));
 
 recordRouter.route('/:recordId')
-    .patch(controller.updateRecord);
+    .patch(controller.updateRecord.bind(controller));
 
 export default recordRouter;

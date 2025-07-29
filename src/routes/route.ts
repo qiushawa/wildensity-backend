@@ -1,7 +1,8 @@
 import { Router } from 'express'
-import deviceRoute from '@/routes/device.route'
-import speciesRouter from '@/routes/device.route'
+import deviceRoute from './device.route'
+import speciesRouter from './species.route'
 import recordRouter from './record.route'
+import downloadRouter from './download.route'
 
 const apiRouter = Router()
 apiRouter.get('/message', (req, res) => {
@@ -11,5 +12,6 @@ apiRouter.get('/message', (req, res) => {
 apiRouter.use('/devices', deviceRoute);
 apiRouter.use('/species', speciesRouter);
 apiRouter.use('/records', recordRouter);
+apiRouter.use('/download', downloadRouter);
 
 export default apiRouter

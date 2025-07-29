@@ -1,6 +1,6 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import CONFIG from '../config/config';
+import {CONFIG} from '../config/config';
 
 const transport: DailyRotateFile = new DailyRotateFile({
 	filename: 'app-%DATE%.log' as string,

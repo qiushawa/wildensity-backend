@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import apiRouter from './routes/route';
 import { errorResponse } from './common/response';
 import { RESPONSE_CODE } from './common/code';
-import CONFIG from './config/config';
+import {CONFIG} from './config/config';
 import logger from './util/logger';
 import cors from 'cors';
 import './common/database';

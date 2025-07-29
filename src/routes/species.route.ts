@@ -4,7 +4,7 @@ const speciesRouter = Router();
 
 const controller = new SpeciesController();
 
-speciesRouter.get('/', controller.getAllSpecies);
-speciesRouter.get('/:speciesId', controller.getSpecies);
+speciesRouter.get('/', controller.getAllSpecies.bind(controller));
+speciesRouter.get('/:speciesId', controller.getSpecies.bind(controller));
 
 export default speciesRouter;
