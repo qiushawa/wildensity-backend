@@ -12,7 +12,7 @@ interface RecordData {
     leave_time: Date | null;
 }
 
-const CSV_HEADER = 'record_id,device_id,species_id,count,average_speed,appearance_time,leave_time';
+const CSV_HEADER = '紀錄編號,設備編號,物種編號,數量,平均速度,出現時間,離開時間';
 
 function toCSVRow(record: RecordData): string {
     return [
@@ -25,11 +25,17 @@ function toCSVRow(record: RecordData): string {
         record.leave_time ? record.leave_time.toISOString() : ''
     ].join(',');
 }
-
+function ensureDirExists(dir: string) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+}
 function getFilePath(record: RecordData): string {
     const year = format(record.appearance_time, 'yyyy');
     const month = format(record.appearance_time, 'MM');
-    return path.join('storage', 'records', year, `${month}.csv`);
+    const dir = path.join('records', year);
+    ensureDirExists(dir);
+    return path.join(dir, `${month}.csv`);
 }
 
 // ✅ 寫入新紀錄（追加）
@@ -52,21 +58,20 @@ export async function updateRecordInCSV(record: RecordData): Promise<void> {
     if (!fs.existsSync(filePath)) return;
 
     const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
+    const lines = content.trim().split('\n');
 
     const updatedLines = lines.map((line, index) => {
         if (index === 0) return line; // 保留 header 行
 
         const cols = line.split(',');
 
-        // 檢查是否為有效數據行，且 record_id 欄位符合
-        const lineRecordId = parseInt(cols[0], 10);
-        if (!isNaN(lineRecordId) && lineRecordId === record.record_id) {
-            return toCSVRow(record); // 替換該筆紀錄
-        }
+        if (cols.length < 1) return line; // 空行或錯誤行直接跳過
 
-        return line;
+        const lineRecordId = parseInt(cols[0], 10);
+        return !isNaN(lineRecordId) && lineRecordId === record.record_id
+            ? toCSVRow(record)
+            : line;
     });
 
-    fs.writeFileSync(filePath, updatedLines.join('\n'), 'utf-8');
+    fs.writeFileSync(filePath, updatedLines.join('\n') + '\n', 'utf-8');
 }

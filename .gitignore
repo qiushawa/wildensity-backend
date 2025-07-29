@@ -12,3 +12,8 @@ node_modules
 package-lock.json
 views/
 migrations/
+# Ignore build output
+dist/
+
+# Ignore coverage reports
+records/

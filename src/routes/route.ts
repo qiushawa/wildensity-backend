@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import deviceRoute from '@/routes/device.route'
-import speciesRouter from '@/routes/device.route'
+import deviceRoute from './device.route'
+import speciesRouter from './species.route'
 import recordRouter from './record.route'
 
 const apiRouter = Router()
