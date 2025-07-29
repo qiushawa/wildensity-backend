@@ -1,7 +1,5 @@
 import { Router } from 'express';
-
-
-import { SpeciesController } from '../controllers/Species/species.controller';
+import { SpeciesController } from '../controllers/species.controller';
 const speciesRouter = Router();
 
 const controller = new SpeciesController();

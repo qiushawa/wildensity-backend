@@ -6,7 +6,9 @@ node_modules
 
 *.db
 *.log
-storage/
+/src/storage/log
+
+
 package-lock.json
 views/
 migrations/

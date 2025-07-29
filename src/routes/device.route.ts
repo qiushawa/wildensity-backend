@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { DeviceController } from '../controllers/Device/device.controller';
+import { DeviceController } from '../controllers/device.controller';
 const deviceRouter = Router();
 
 
@@ -14,5 +14,5 @@ deviceRouter.route('/:deviceId')
     .post(controller.createDevice)
     .patch(controller.updateDevice)
     .delete(controller.deleteDevice);
-    
+
 export default deviceRouter;
