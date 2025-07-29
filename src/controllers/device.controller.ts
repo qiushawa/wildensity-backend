@@ -1,10 +1,10 @@
 import { prisma } from '@/common/database';
 import { RESPONSE_CODE } from '@/common/code';
 import { errorResponse, successResponse } from '@/common/response';
-
 import { Request, Response } from 'express';
 
 export class DeviceController {
+
     async getAllDevice(req: Request, res: Response): Promise<void> {
         const devices = await prisma.device.findMany();
         return successResponse(res, RESPONSE_CODE.SUCCESS, devices);
