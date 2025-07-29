@@ -1,7 +1,8 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import { format } from 'date-fns';
 import { UTF8_BOM, CSV_HEADER } from '../config/config';
+
 interface RecordData {
     record_id: number;
     device_id: number;
@@ -40,17 +41,19 @@ function toCSVRow(record: RecordData): string {
     ].join(',');
 }
 
-
 /**
  * 確保目錄存在，若不存在則創建
  * @param dir 欲確保存在的目錄
  */
-function ensureDirExists(dir: string) {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+async function ensureDirExists(dir: string): Promise<void> {
+    try {
+        await fs.mkdir(dir, { recursive: true });
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+            throw error;
+        }
     }
 }
-
 
 /**
  * 根據紀錄的 appearance_time 獲取對應的 CSV 檔案路徑
@@ -61,7 +64,6 @@ function getFilePath(record: RecordData): string {
     const year = format(record.appearance_time, 'yyyy');
     const month = format(record.appearance_time, 'MM');
     const dir = path.join('records', year);
-    ensureDirExists(dir);
     return path.join(dir, `${month}.csv`);
 }
 
@@ -70,11 +72,10 @@ function getFilePath(record: RecordData): string {
  * @param filePath 欲寫入的檔案路徑
  * @param lines 欲寫入的行數組
  */
-function writeCSV(filePath: string, lines: string[]) {
+async function writeCSV(filePath: string, lines: string[]): Promise<void> {
     const content = [CSV_HEADER, ...lines].join('\n');
-    fs.writeFileSync(filePath, UTF8_BOM + content + '\n', 'utf-8');
+    await fs.writeFile(filePath, UTF8_BOM + content + '\n', 'utf-8');
 }
-
 
 /**
  * ✅ 新增紀錄到 CSV 檔案
@@ -86,13 +87,18 @@ export async function appendRecordToCSV(record: RecordData): Promise<void> {
     const filePath = getFilePath(record);
     const row = toCSVRow(record);
 
-    if (!fs.existsSync(filePath)) {
-        writeCSV(filePath, [row]); // 新檔案含標題與 BOM
-    } else {
-        fs.appendFileSync(filePath, row + '\n', 'utf-8'); // 舊檔案不需重複寫入標題
+    try {
+        await ensureDirExists(path.dirname(filePath));
+        try {
+            await fs.access(filePath);
+            await fs.appendFile(filePath, row + '\n', 'utf-8');
+        } catch {
+            await writeCSV(filePath, [row]);
+        }
+    } catch (error) {
+        throw new Error(`Failed to append record to CSV: ${error}`);
     }
 }
-
 
 /**
  * ✅ 更新 CSV 檔案中的紀錄
@@ -101,11 +107,16 @@ export async function appendRecordToCSV(record: RecordData): Promise<void> {
  */
 export async function updateRecordInCSV(record: RecordData): Promise<void> {
     const filePath = getFilePath(record);
-    if (!fs.existsSync(filePath)) return;
+    
+    try {
+        await fs.access(filePath);
+    } catch {
+        return; // File doesn't exist, nothing to update
+    }
 
-    const raw = fs.readFileSync(filePath, 'utf-8').replace(UTF8_BOM, '');
-    const lines = raw.trim().split('\n');
-
+    const raw = await fs.readFile(filePath, 'utf-8');
+    const cleanRaw = raw.replace(UTF8_BOM, '');
+    const lines = cleanRaw.trim().split('\n');
     const dataLines = lines.slice(1); // 去掉標題行
     const updated = dataLines.map(line => {
         const cols = line.split(',');
@@ -115,5 +126,5 @@ export async function updateRecordInCSV(record: RecordData): Promise<void> {
             : line;
     });
 
-    writeCSV(filePath, updated);
+    await writeCSV(filePath, updated);
 }
