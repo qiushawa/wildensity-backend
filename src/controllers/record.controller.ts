@@ -1,9 +1,10 @@
 
+
 import { RESPONSE_CODE } from '@/common/code';
 import { prisma } from '@/common/database';
 import { errorResponse, successResponse } from '@/common/response';
-import { writeOrUpdateRecordToCsv, updateRecordById, AppearanceRecord } from '@/util/csv';
 import { Request, Response } from 'express';
+import { appendRecordToCSV, updateRecordInCSV } from '@/util/csv';
 interface CreateRecordRequest {
     deviceId: number;
     speciesId: number;
@@ -16,6 +17,16 @@ interface UpdateRecordRequest{
 export class RecordController {
     async createRecord(req: Request<{}, {}, CreateRecordRequest>, res: Response): Promise<void> {
         const { deviceId, speciesId } = req.body;
+        // 檢查設備物種是否存在
+        const device = await prisma.device.findUnique({
+            where: { device_id: deviceId }
+        });
+        const species = await prisma.species.findUnique({
+            where: { species_id: speciesId }
+        });
+        if (!device) return errorResponse(res, RESPONSE_CODE.NOT_FOUND, '設備不存在');
+        if (!species) return errorResponse(res, RESPONSE_CODE.NOT_FOUND, '物種不存在');
+
         const record = await prisma.appearance_record.create({
             data: {
                 device_id: deviceId,
@@ -24,8 +35,8 @@ export class RecordController {
                 appearance_time: new Date(), // 設置當前時間為出現時間
             }
         });
-        // 將記錄寫入 CSV
-        await writeOrUpdateRecordToCsv(record as AppearanceRecord);
+        // 將記錄追加到CSV文件
+        await appendRecordToCSV(record);
         return successResponse(res, RESPONSE_CODE.CREATED, record, '記錄創建成功');
     }
 
@@ -36,6 +47,7 @@ export class RecordController {
             where: { record_id: recordId },
             data: { count, average_speed , leave_time: new Date() } // 更新離開時間為當前時間
         });
+        await updateRecordInCSV(record);
         return successResponse(res, RESPONSE_CODE.SUCCESS, record, '記錄更新成功');
     }
 }
