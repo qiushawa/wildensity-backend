@@ -51,19 +51,15 @@ positive_mod <- function(x, m) {
   (x %% m + m) %% m
 }
 time_rad <- positive_mod(time_rad, 2 * pi)
-cat("time_rad 範圍:", min(time_rad), "到", max(time_rad), "\n")
 if (max(time_rad) > 2 * pi || min(time_rad) < 0) {
   stop("time_rad 計算錯誤：弧度值應在 0 到 2π 之間")
 }
 
 expanded <- rep(time_rad, df$數量)
-cat("expanded 長度:", length(expanded), "\n")
 if (length(expanded) == 0) {
   stop("expanded 資料為空，請檢查 '數量' 欄位")
 }
-if (length(expanded) < 10) {
-  warning("資料量過少（expanded 長度 = ", length(expanded), "），可能導致信賴區間不穩定")
-}
+
 
 # 活動分析
 fit <- fitact(expanded, sample = "model", bw = 20, reps = 100)
@@ -86,7 +82,6 @@ if (file.exists(opt$output)) {
   result <- result[, colnames(existing_data)]
   # 檢查是否已存在該月份，若存在則覆蓋
   if (month_str %in% existing_data$月份) {
-    warning("月份 ", month_str, " 已存在於 output.csv，將覆蓋該月份數據")
     existing_data <- existing_data[existing_data$月份 != month_str, ]
   }
   combined_data <- rbind(existing_data, result)
@@ -97,4 +92,10 @@ if (file.exists(opt$output)) {
 # 以 UTF-8 BOM 存檔
 con <- file(opt$output, open = "wb")
 write.csv(combined_data, file = con, row.names = FALSE, fileEncoding = "UTF-8")
+# 輸出ak
+cat(round(ak, 5), "\n")
+# ci_lower
+cat(round(ci_lower, 5), "\n")
+# ci_upper
+cat(round(ci_upper, 5), "\n")
 close(con)
