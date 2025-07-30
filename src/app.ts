@@ -6,6 +6,7 @@ import { errorResponse } from './common/response';
 import { RESPONSE_CODE } from './common/code';
 import {CONFIG} from './config/config';
 import logger from './util/logger';
+import  {updateActivityTask}  from './scheduler/updateActivity';
 import cors from 'cors';
 import './common/database';
 
@@ -60,4 +61,5 @@ app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
 
 app.listen(port, () => {
 	console.log(`http://127.0.0.1:${port}`);
+	updateActivityTask();
 });

@@ -16,4 +16,5 @@ migrations/
 dist/
 
 # Ignore coverage reports
-records/
+*.csv
+*.py
