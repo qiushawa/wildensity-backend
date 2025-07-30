@@ -9,5 +9,11 @@ const CONFIG = {
 
 const UTF8_BOM = '\uFEFF';
 const CSV_HEADER = '紀錄編號,設備編號,物種編號,數量,平均速度,出現時間,離開時間';
-
-export { CONFIG, UTF8_BOM, CSV_HEADER }
+// 任務設定
+const UPDATE_ACTIVITY = {
+	cron: '0 0 * * *', // 每天午夜執行
+	// cron: '* * * * *', // 每分鐘執行，開發時使用
+	task: 'updateActivityTask',
+	description: '更新活動計算結果'
+};
+export { CONFIG, UTF8_BOM, CSV_HEADER, UPDATE_ACTIVITY }
