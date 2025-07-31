@@ -13,17 +13,21 @@ if (!file.exists(opt$input)) {
   stop("輸入檔案不存在：", opt$input)
 }
 
-# ----------- 解析年月 -----------
+# ----------- 解析物種/年月 -----------
 file_path <- normalizePath(opt$input, winslash = "/")
 path_parts <- strsplit(file_path, "/")[[1]]
 file_name <- path_parts[length(path_parts)]
 year <- path_parts[length(path_parts)-1]
 
-if (length(path_parts) >= 3 && "records" %in% path_parts && nchar(year) == 4 && grepl("^\\d{2}\\.csv$", file_name)) {
+if (length(path_parts) >= 4 &&
+  path_parts[length(path_parts) - 3] == "records" &&
+  nchar(path_parts[length(path_parts) - 2]) > 0 &&
+  nchar(year) == 4 && grepl("^\\d{4}$", year) &&
+  grepl("^\\d{2}\\.csv$", file_name)) {
   month <- sub("\\.csv$", "", file_name)
   month_str <- paste(year, month, sep = "-")
 } else {
-  stop("輸入檔案路徑不符合預期格式（應為 records/SS/YYYY/MM.csv）")
+  stop("輸入檔案路徑不符合預期格式（應為 .../records/SS/YYYY/MM.csv）")
 }
 
 # ----------- 讀取 CSV -----------
