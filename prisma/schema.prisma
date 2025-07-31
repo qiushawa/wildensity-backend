@@ -21,6 +21,7 @@ model species {
   species_id         Int                 @id @default(autoincrement())
   species_name       String              @db.VarChar(100)
   appearance_records appearance_record[] @relation("SpeciesToAppearanceRecord")
+  activity_peaks     activity_peak[]
 }
 
 model appearance_record {
@@ -36,6 +37,16 @@ model appearance_record {
 
   @@index([device_id], map: "appearance_record_device_id_fkey")
   @@index([species_id], map: "appearance_record_species_id_fkey")
+}
+// 活動峰值紀錄 [僅作為開發時使用，實際應用中不需要]
+model activity_peak {
+  peak_id          Int       @id @default(autoincrement())
+  species_id      Int
+  activity_peak   Float
+  created_at      DateTime  @default(now())
+  species         species   @relation(fields: [species_id], references: [species_id])
+
+  @@index([species_id], map: "activity_peak_species_id_fkey")
 }
 
 enum DeviceStatus {

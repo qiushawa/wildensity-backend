@@ -14,10 +14,11 @@ async function main() {
     })),
   });
 
-  await prisma.species.create({
-    data: {
-      species_name: '雞',
-    }
+  await prisma.species.createMany({
+    data: Array.from({ length: 3 }, (_, i) => ({
+      species_id: i + 1,
+      species_name: `Species ${i + 1}`,
+    })),
   });
 }
 main()
