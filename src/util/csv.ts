@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { format } from 'date-fns';
-import { UTF8_BOM, CSV_HEADER } from '../config/config';
+import { UTF8_BOM, CSV_HEADER , CONFIG} from '../config/config';
 
 interface RecordData {
     record_id: number;
@@ -33,7 +33,6 @@ function toCSVRow(record: RecordData): string {
     return [
         safeValue(record.record_id),
         safeValue(record.device_id),
-        safeValue(record.species_id),
         safeValue(record.count),
         safeValue(record.average_speed),
         record.appearance_time.toISOString(),
@@ -63,7 +62,8 @@ async function ensureDirExists(dir: string): Promise<void> {
 function getFilePath(record: RecordData): string {
     const year = format(record.appearance_time, 'yyyy');
     const month = format(record.appearance_time, 'MM');
-    const dir = path.join('records', year);
+    const speciesId = record.species_id.toString().padStart(2, '0');
+    const dir = path.join(CONFIG.RECORDS_DIR, speciesId, year);
     return path.join(dir, `${month}.csv`);
 }
 
