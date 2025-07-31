@@ -27,7 +27,14 @@ if (length(path_parts) >= 3 && "records" %in% path_parts && nchar(year) == 4 && 
 }
 
 # ----------- 讀取 CSV -----------
-df <- read.csv(opt$input, fileEncoding = "UTF-8-BOM")
+# 嘗試偵測 BOM，根據需要設定 fileEncoding
+first_bytes <- readBin(opt$input, what = "raw", n = 3)
+if (identical(first_bytes, charToRaw("\xef\xbb\xbf"))) {
+  message("⚠️ 偵測到 UTF-8 BOM，將使用 fileEncoding = 'UTF-8-BOM' 讀取檔案")
+  df <- read.csv(opt$input, fileEncoding = "UTF-8-BOM")
+} else {
+  df <- read.csv(opt$input)
+}
 
 # ----------- 驗證欄位存在 -----------
 if (!all(c("appearance_time", "count") %in% colnames(df))) {
