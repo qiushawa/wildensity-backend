@@ -28,12 +28,5 @@ export async function calculateActivity(speciesId: number) {
         .trim()
         .split(/\s+/)
         .map(Number)
-    await prisma.activity_peak.create({
-        data: {
-            species_id: speciesId,
-            activity_peak: ak,
-            created_at: new Date(),
-        },
-    });
     return { ak, ci_lower, ci_upper }
 }

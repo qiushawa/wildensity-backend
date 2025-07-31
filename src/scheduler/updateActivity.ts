@@ -15,7 +15,16 @@ export function updateActivityTask() {
         console.log('開始更新AK計算結果');
         for (const { species_id } of speciesList) {
             try {
-                await calculateActivity(species_id);
+                const { ak, ci_lower, ci_upper } = await calculateActivity(species_id);
+                await prisma.activity_peak.create({
+                    data: {
+                        species_id: species_id,
+                        activity_peak: ak,
+                        ci_lower: ci_lower,
+                        ci_upper: ci_upper,
+                        created_at: new Date(),
+                    },
+                });
                 console.log(`物種 ${species_id} 的AK計算已完成`);
             } catch (error) {
                 console.error(`更新物種 ${species_id} AK計算時出錯:`, error);
