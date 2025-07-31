@@ -43,6 +43,8 @@ model activity_peak {
   peak_id          Int       @id @default(autoincrement())
   species_id      Int
   activity_peak   Float
+  ci_lower        Float
+  ci_upper        Float
   created_at      DateTime  @default(now())
   species         species   @relation(fields: [species_id], references: [species_id])
 

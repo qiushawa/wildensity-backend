@@ -10,27 +10,31 @@ opt <- parse_args(OptionParser(option_list = option_list))
 
 # ----------- 驗證輸入檔案 -----------
 if (!file.exists(opt$input)) {
-  stop("❌ 輸入檔案不存在：", opt$input)
+  stop("輸入檔案不存在：", opt$input)
 }
 
-# ----------- 解析年月 -----------
+# ----------- 解析物種/年月 -----------
 file_path <- normalizePath(opt$input, winslash = "/")
 path_parts <- strsplit(file_path, "/")[[1]]
 file_name <- path_parts[length(path_parts)]
 year <- path_parts[length(path_parts)-1]
 
-if (length(path_parts) >= 3 && "records" %in% path_parts && nchar(year) == 4 && grepl("^\\d{2}\\.csv$", file_name)) {
+if (length(path_parts) >= 4 &&
+  path_parts[length(path_parts) - 3] == "records" &&
+  nchar(path_parts[length(path_parts) - 2]) > 0 &&
+  nchar(year) == 4 && grepl("^\\d{4}$", year) &&
+  grepl("^\\d{2}\\.csv$", file_name)) {
   month <- sub("\\.csv$", "", file_name)
   month_str <- paste(year, month, sep = "-")
 } else {
-  stop("❌ 輸入檔案路徑不符合預期格式（應為 records/YYYY/MM.csv）")
+  stop("輸入檔案路徑不符合預期格式（應為 .../records/SS/YYYY/MM.csv）")
 }
 
 # ----------- 讀取 CSV -----------
 # 嘗試偵測 BOM，根據需要設定 fileEncoding
 first_bytes <- readBin(opt$input, what = "raw", n = 3)
 if (identical(first_bytes, charToRaw("\xef\xbb\xbf"))) {
-  message("⚠️ 偵測到 UTF-8 BOM，將使用 fileEncoding = 'UTF-8-BOM' 讀取檔案")
+  message("偵測到 UTF-8 BOM，將使用 fileEncoding = 'UTF-8-BOM' 讀取檔案")
   df <- read.csv(opt$input, fileEncoding = "UTF-8-BOM")
 } else {
   df <- read.csv(opt$input)
@@ -38,7 +42,7 @@ if (identical(first_bytes, charToRaw("\xef\xbb\xbf"))) {
 
 # ----------- 驗證欄位存在 -----------
 if (!all(c("appearance_time", "count") %in% colnames(df))) {
-  stop("❌ 缺少必要欄位：'appearance_time' 或 'count'")
+  stop("缺少必要欄位：'appearance_time' 或 'count'")
 }
 
 # ----------- 時間解析 -----------
@@ -50,11 +54,11 @@ df$timestamp <- as.POSIXct(df$appearance_time, tz = "UTC", tryFormats = c(
 
 if (any(is.na(df$timestamp))) {
   print(df$appearance_time[is.na(df$timestamp)])
-  stop("❌ 無法解析部分時間戳記，請確認格式是否為 ISO 8601（如 2025-07-09T02:33:01.850Z）")
+  stop("無法解析部分時間戳記，請確認格式是否為 ISO 8601（如 2025-07-09T02:33:01.850Z）")
 }
 
 if (any(is.na(df$count) | df$count <= 0)) {
-  stop("❌ 無效資料：'count' 欄位需為正整數")
+  stop("無效資料：'count' 欄位需為正整數")
 }
 
 # ----------- 計算弧度 -----------
@@ -68,13 +72,13 @@ positive_mod <- function(x, m) {
 time_rad <- positive_mod(decimal_hour / 24 * 2 * pi, 2 * pi)
 
 if (max(time_rad) > 2 * pi || min(time_rad) < 0) {
-  stop("❌ 弧度計算錯誤：值應落在 [0, 2π] 範圍")
+  stop("弧度計算錯誤：值應落在 [0, 2π] 範圍")
 }
 
 # ----------- 展開重複數據 -----------
 expanded <- rep(time_rad, df$count)
 if (length(expanded) == 0) {
-  stop("❌ 無資料可分析：請確認 'count' 欄位內容")
+  stop("無資料可分析：請確認 'count' 欄位內容")
 }
 
 # ----------- 活動分析 -----------
