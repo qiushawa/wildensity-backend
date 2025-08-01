@@ -10,16 +10,14 @@ export async function calculateActivity(speciesId: number) {
     const now = new Date()
     let year = now.getFullYear().toString()
     let month = String(now.getMonth() + 1).padStart(2, '0')
-    let day = String(now.getDate()).padStart(2, '0')
-
-    if (day === '01') {
+    if (now.getDate() === 1) {
         // 如果是每月第一天，則計算上個月的活動
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
         year = lastMonth.getFullYear().toString()
         month = String(lastMonth.getMonth() + 1).padStart(2, '0')
     }
 
-
+    // 構建輸入和輸出路徑
     const speciesIdStr = speciesId.toString().padStart(2, '0')
     const inCsv = path.join('reports', 'records', speciesIdStr, year, `${month}.csv`)
     const outdir = path.join('reports', 'activity', speciesIdStr)
