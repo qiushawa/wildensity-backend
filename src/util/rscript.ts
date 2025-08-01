@@ -8,9 +8,9 @@ const exec = promisify(_exec)
 
 export async function calculateActivity(speciesId: number) {
     const now = new Date()
-    var year = now.getFullYear().toString()
-    var month = String(now.getMonth() + 1).padStart(2, '0')
-    var day = String(now.getDate()).padStart(2, '0')
+    let year = now.getFullYear().toString()
+    let month = String(now.getMonth() + 1).padStart(2, '0')
+    let day = String(now.getDate()).padStart(2, '0')
 
     if (day == '01') {
         // 如果是每月第一天，則計算上個月的活動
