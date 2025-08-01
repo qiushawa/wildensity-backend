@@ -1,33 +1,26 @@
 #!/usr/bin/env Rscript
 
 suppressMessages(library(optparse))
+suppressMessages(library(parsedate))
 
 calculate_rest_density <- function(df, s, T, ak) {
     if (!all(c("appearance_time", "leave_time", "count") %in% colnames(df))) {
         stop("REST 密度計算需要 'appearance_time', 'leave_time', 'count' 欄位")
     }
 
-    df$start <- as.POSIXct(df$appearance_time, tz = "UTC", tryFormats = c(
-        "%Y-%m-%dT%H:%M:%OSZ",
-        "%Y-%m-%dT%H:%M:%S%z",
-        "%Y-%m-%d %H:%M:%S"
-    ))
-    df$end <- as.POSIXct(df$leave_time, tz = "UTC", tryFormats = c(
-        "%Y-%m-%dT%H:%M:%OSZ",
-        "%Y-%m-%dT%H:%M:%S%z",
-        "%Y-%m-%d %H:%M:%S"
-    ))
+    df$start <- parsedate::parse_date(df$appearance_time)
+    df$end <- parsedate::parse_date(df$leave_time)
 
     if (any(is.na(df$start) | is.na(df$end))) {
         stop("無法解析 'appearance_time' 或 'leave_time'")
     }
 
-    durations <- as.numeric(difftime(df$end, df$start, units = "secs"))
-    t_total <- sum(durations * df$count)
+    durations <- as.numeric(difftime(df$end, df$start, units = "secs")) # 計算每筆資料的停留時間
+    t_total <- sum(durations * df$count)  # 每筆乘以 count，表示總停留秒數
     Y_total <- sum(df$count)
 
     if (s <= 0 || T <= 0 || ak <= 0) {
-        stop("參數 s, T, ak 必須為正數")
+        stop("參數 s, T, Ak 必須為正數")
     }
 
     D <- (Y_total * t_total) / (s * T * ak)
@@ -52,7 +45,7 @@ main <- function() {
     }
 
     D <- calculate_rest_density(df, opt$area, opt$duration, opt$ak)
-    cat("REST 密度 (Density):", D, "\n")
+    cat(D, "\n")
 }
 
 if (sys.nframe() == 0) {
