@@ -12,7 +12,7 @@ export async function calculateActivity(speciesId: number) {
     let month = String(now.getMonth() + 1).padStart(2, '0')
     let day = String(now.getDate()).padStart(2, '0')
 
-    if (day == '01') {
+    if (day === '01') {
         // 如果是每月第一天，則計算上個月的活動
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
         year = lastMonth.getFullYear().toString()
