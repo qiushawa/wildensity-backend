@@ -26,7 +26,7 @@ export async function calculateActivity(speciesId: number) {
         fs.mkdirSync(outdir, { recursive: true })
     }
     const outCsv = path.join(outdir, `${year}.csv`)
-    const script = path.resolve('./r-scripts/calculate_activity.R')
+    const script = path.resolve('./calculate/activity.R')
     const cmd = `Rscript ${script} -i ${inCsv} -o ${outCsv}`
 
     const { stdout, stderr } = await exec(cmd)

@@ -1,7 +1,7 @@
 // src/scheduler/task.ts
 import cron from 'node-cron';
 import { UPDATE_ACTIVITY } from '../config/config';
-import { calculateActivity } from '../util/rscript';
+import { calculateActivity } from '../util/calculate';
 import { prisma } from '../common/database';
 export function updateActivityTask() {
     cron.schedule(UPDATE_ACTIVITY.cron, async () => {
