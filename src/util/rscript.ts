@@ -8,8 +8,18 @@ const exec = promisify(_exec)
 
 export async function calculateActivity(speciesId: number) {
     const now = new Date()
-    const year = now.getFullYear().toString()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
+    var year = now.getFullYear().toString()
+    var month = String(now.getMonth() + 1).padStart(2, '0')
+    var day = String(now.getDate()).padStart(2, '0')
+
+    if (day == '01') {
+        // 如果是每月第一天，則計算上個月的活動
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        year = lastMonth.getFullYear().toString()
+        month = String(lastMonth.getMonth() + 1).padStart(2, '0')
+    }
+
+
     const speciesIdStr = speciesId.toString().padStart(2, '0')
     const inCsv = path.join('reports', 'records', speciesIdStr, year, `${month}.csv`)
     const outdir = path.join('reports', 'activity', speciesIdStr)

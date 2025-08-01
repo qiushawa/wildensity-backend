@@ -11,7 +11,7 @@ const UTF8_BOM = '\uFEFF';
 const CSV_HEADER = 'record_id,device_id,count,average_speed,appearance_time,leave_time';
 // 任務設定
 const UPDATE_ACTIVITY = {
-	cron: '0 0 * * *', // 每天午夜執行
+	cron: '0 0 * * *', // 每天00:00執行
 	// cron: '* * * * *', // 每分鐘執行，開發時使用
 	task: 'updateActivityTask',
 	description: '更新活動計算結果'
