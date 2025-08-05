@@ -16,22 +16,25 @@ export class DeviceController extends CoordinatesController {
 
     async getDevice(req: Request, res: Response): Promise<void> {
         const deviceId = parseInt(req.params.deviceId, 10);
+        const areaId = parseInt(req.params.areaId, 10);
         const device = await prisma.device.findUnique({
-            where: { device_id: deviceId },
+            where: { device_id_area_id: { device_id: deviceId, area_id: areaId } },
         });
         if (device) return successResponse(res, RESPONSE_CODE.SUCCESS, device);
         return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "設備不存在");
     }
 
     async createDevice(req: Request, res: Response): Promise<void> {
-        const { deviceId, areaId } = req.body;
 
+        const deviceId = parseInt(req.body.deviceId, 10);
+        const areaId = parseInt(req.params.areaId, 10);
+        console.log("Creating device with ID:", deviceId, "in area ID:", areaId);
         if (!deviceId || !areaId) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "設備ID和樣區ID是必需的");
         }
 
-        const parsedDeviceId = parseInt(deviceId, 10);
-        const parsedAreaId = parseInt(areaId, 10);
+        const parsedDeviceId = deviceId;
+        const parsedAreaId = areaId;
         if (isNaN(parsedDeviceId) || isNaN(parsedAreaId)) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "設備ID和樣區ID必須是有效的數字");
         }
@@ -39,7 +42,7 @@ export class DeviceController extends CoordinatesController {
 
         try {
             const existingDevice = await prisma.device.findUnique({
-                where: { device_id: parsedDeviceId },
+                where: { device_id_area_id: { device_id: parsedDeviceId, area_id: parsedAreaId } },
             });
 
             let existingArea = await prisma.area.findUnique({
@@ -75,10 +78,11 @@ export class DeviceController extends CoordinatesController {
 
 
     async deleteDevice(req: Request, res: Response): Promise<void> {
-        const { deviceId } = req.params;
+        const deviceId = parseInt(req.params.deviceId, 10);
+        const areaId = parseInt(req.params.areaId, 10);
         // 檢查裝置是否存在
         const existingDevice = await prisma.device.findUnique({
-            where: { device_id: parseInt(deviceId, 10) },
+            where: { device_id_area_id: { device_id: deviceId, area_id: areaId } },
         });
         if (!existingDevice)
             return errorResponse(
@@ -88,7 +92,7 @@ export class DeviceController extends CoordinatesController {
             );
         // 刪除裝置
         const device = await prisma.device.delete({
-            where: { device_id: parseInt(deviceId, 10) },
+            where: { device_id_area_id: { device_id: deviceId, area_id: areaId } },
         });
         if (device) return successResponse(res, RESPONSE_CODE.SUCCESS);
         return errorResponse(

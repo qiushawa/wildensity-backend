@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { RecordController } from '../controllers/record.controller';
-const recordRouter = Router();
+const recordRouter = Router({ mergeParams: true });
 
 const controller = new RecordController();
 recordRouter.route('/')

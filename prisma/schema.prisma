@@ -8,15 +8,17 @@ datasource db {
 }
 
 model device {
-  device_id            Int                 @id
-  area_id              Int?
+  device_id            Int
+  area_id              Int
   device_name          String?             @db.VarChar(50)
   location_description String?             @db.VarChar(50)
   longitude            Float?
   latitude             Float?
   status               DeviceStatus?       @default(LOCATION_UNKNOWN)
   appearance_records   appearance_record[] @relation("DeviceToAppearanceRecord")
-  area                 area?               @relation("AreaToDevice", fields: [area_id], references: [area_id])
+  area                 area                @relation("AreaToDevice", fields: [area_id], references: [area_id])
+
+  @@id([device_id, area_id])
 }
 
 model area {
@@ -36,15 +38,16 @@ model species {
 model appearance_record {
   record_id       Int       @id @default(autoincrement())
   device_id       Int
+  area_id         Int
   species_id      Int
   count           Int       @default(1)
   average_speed   Float?
   appearance_time DateTime  @default(now())
   leave_time      DateTime?
-  device          device    @relation("DeviceToAppearanceRecord", fields: [device_id], references: [device_id])
+  device          device    @relation("DeviceToAppearanceRecord", fields: [device_id, area_id], references: [device_id, area_id])
   species         species   @relation("SpeciesToAppearanceRecord", fields: [species_id], references: [species_id])
 
-  @@index([device_id], map: "appearance_record_device_id_fkey")
+  @@index([device_id, area_id])
   @@index([species_id], map: "appearance_record_species_id_fkey")
 }
 
