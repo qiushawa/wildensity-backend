@@ -28,7 +28,6 @@ export class DeviceController extends CoordinatesController {
 
         const deviceId = parseInt(req.body.deviceId, 10);
         const areaId = parseInt(req.params.areaId, 10);
-        console.log("Creating device with ID:", deviceId, "in area ID:", areaId);
         if (!deviceId || !areaId) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "設備ID和樣區ID是必需的");
         }
