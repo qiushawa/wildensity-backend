@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import deviceRouter from './device.route';
+import recordRouter from './record.route';
 import { AreaController } from '../controllers/area.controller';
 const areaRouter = Router();
 
@@ -18,8 +20,11 @@ areaRouter.route('/:areaId/coordinates')
     .patch(controller.updateAreaBoundary.bind(controller));
 
 // 樣區設備資訊
-areaRouter.route('/:areaId/devices')
-    .get(controller.getAreaDevices.bind(controller));
+areaRouter.use('/:areaId/devices', deviceRouter);
+
+// 接收樣區觀測資料
+areaRouter.use('/:areaId/records', recordRouter);
+
 
 // 樣區物種活動資訊(密度/活動峰值)
 areaRouter.route('/:areaId/species/:speciesId');

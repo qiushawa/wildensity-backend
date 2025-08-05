@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { DeviceController } from '../controllers/device.controller';
 
-const deviceRouter = Router();
+const deviceRouter = Router({ mergeParams: true });
 const controller = new DeviceController();
 
 deviceRouter.route('/')

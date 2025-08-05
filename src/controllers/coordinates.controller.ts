@@ -80,13 +80,16 @@ export class CoordinatesController {
     }
 
     // 獲取設備座標
-    public async getDeviceCoordinates(
-        req: Request,
-        res: Response
-    ): Promise<void> {
+    public async getDeviceCoordinates(req: Request, res: Response): Promise<void> {
         const deviceId = parseInt(req.params.deviceId, 10);
+        const areaId = parseInt(req.params.areaId, 10);
         const device = await prisma.device.findUnique({
-            where: { device_id: deviceId },
+            where: {
+                device_id_area_id: {
+                    device_id: deviceId,
+                    area_id: areaId,
+                },
+            },
             select: {
                 area_id: true,
                 latitude: true,
@@ -138,9 +141,12 @@ export class CoordinatesController {
         res: Response
     ): Promise<void> {
         const deviceId = parseInt(req.params.deviceId, 10);
+        const areaId = parseInt(req.params.areaId, 10);
         const { latitude, longitude, location_description } = req.body;
         const updatedDevice = await prisma.device.update({
-            where: { device_id: deviceId },
+            where: {
+                device_id_area_id: { device_id: deviceId, area_id: areaId }
+            },
             data: { latitude, longitude, location_description },
         });
         // 如果更新成功，更新樣區邊界
