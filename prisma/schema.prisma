@@ -9,12 +9,21 @@ datasource db {
 
 model device {
   device_id            Int                 @id
-  device_name          String?             @default("未命名設備") @db.VarChar(50)
+  area_id              Int?
+  device_name          String?             @db.VarChar(50)
   location_description String?             @db.VarChar(50)
   longitude            Float?
   latitude             Float?
   status               DeviceStatus?       @default(LOCATION_UNKNOWN)
   appearance_records   appearance_record[] @relation("DeviceToAppearanceRecord")
+  area                 area?               @relation("AreaToDevice", fields: [area_id], references: [area_id])
+}
+
+model area {
+  area_id   Int      @id @default(autoincrement())
+  area_name String   @db.VarChar(100)
+  boundary  Json?
+  devices   device[] @relation("AreaToDevice")
 }
 
 model species {
@@ -38,15 +47,16 @@ model appearance_record {
   @@index([device_id], map: "appearance_record_device_id_fkey")
   @@index([species_id], map: "appearance_record_species_id_fkey")
 }
+
 // 活動峰值紀錄 [僅作為開發時使用，實際應用中不需要]
 model activity_peak {
-  peak_id          Int       @id @default(autoincrement())
-  species_id      Int
-  activity_peak   Float
-  ci_lower        Float
-  ci_upper        Float
-  created_at      DateTime  @default(now())
-  species         species   @relation(fields: [species_id], references: [species_id])
+  peak_id       Int      @id @default(autoincrement())
+  species_id    Int
+  activity_peak Float
+  ci_lower      Float
+  ci_upper      Float
+  created_at    DateTime @default(now())
+  species       species  @relation(fields: [species_id], references: [species_id])
 
   @@index([species_id], map: "activity_peak_species_id_fkey")
 }
