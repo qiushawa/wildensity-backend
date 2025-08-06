@@ -49,7 +49,10 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
             circle,
         };
     });
-    console.log("樣區:", areasWithCircles);
+    // Remove or restrict logging of potentially sensitive or large data in production
+    if (process.env.NODE_ENV !== 'production') {
+        console.log("樣區:", areasWithCircles);
+    }
     return successResponse(res, RESPONSE_CODE.SUCCESS, areasWithCircles);
 }
 
