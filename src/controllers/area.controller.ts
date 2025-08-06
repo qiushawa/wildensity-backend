@@ -4,6 +4,10 @@ import { errorResponse, successResponse } from "../common/response";
 import { Request, Response } from "express";
 import logger from "../util/logger";
 import { CoordinatesController } from "./coordinates.controller";
+interface GeoJSONPolygon {
+    type: "Polygon";
+    coordinates: number[][][];
+}
 export class AreaController extends CoordinatesController {
     constructor() {
         super(); // 初始化 CoordinatesController
@@ -17,10 +21,36 @@ export class AreaController extends CoordinatesController {
         return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "樣區不存在");
     }
 
-    async getAllAreas(req: Request, res: Response): Promise<void> {
-        const areas = await prisma.area.findMany();
-        return successResponse(res, RESPONSE_CODE.SUCCESS, areas);
-    }
+async getAllAreas(req: Request, res: Response): Promise<void> {
+    const areas = await prisma.area.findMany({
+        include: {
+            devices: true, // 包含設備資訊
+        }
+    });
+
+    const areasWithCircles = areas.map(area => {
+        let circle = null;
+        const boundary = area.boundary as unknown as GeoJSONPolygon;
+        if (boundary.type === 'Polygon') {
+            circle = this.polygonToCircleFromGeoJSON(boundary);
+        }
+        try {
+            if (area.boundary && boundary.type === 'Polygon') {
+                circle = this.polygonToCircleFromGeoJSON(boundary);
+                console.log('area_id:', area.area_id, 'circle:', circle);
+            }
+        } catch (error) {
+            console.error('計算圓心半徑失敗:', error);
+        }
+        return {
+            ...area,
+            circle,
+        };
+    });
+    console.log("樣區:", areasWithCircles);
+    return successResponse(res, RESPONSE_CODE.SUCCESS, areasWithCircles);
+}
+
 
     async createArea(req: Request, res: Response): Promise<void> {
         const { areaId, areaName } = req.body;
@@ -94,6 +124,6 @@ export class AreaController extends CoordinatesController {
         return successResponse(res, RESPONSE_CODE.SUCCESS, devices);
     }
 
-    
+
 
 }

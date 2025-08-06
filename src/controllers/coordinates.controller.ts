@@ -3,9 +3,50 @@ import { RESPONSE_CODE } from "../common/code";
 import { errorResponse, successResponse } from "../common/response";
 import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
+interface GeoJSONPolygon {
+    type: "Polygon";
+    coordinates: number[][][];
+}
+type LatLng = [number, number];
 
 export class CoordinatesController {
     // 主函式
+
+
+    public  polygonToCircleFromGeoJSON(boundary: {
+        type: string;
+        coordinates: number[][][];
+    }) {
+        const pointsLngLat = boundary.coordinates[0];
+        // 將 [lng, lat] 轉成 [lat, lng]
+        const points = pointsLngLat.map(([lng, lat]) => [lat, lng] as [number, number]);
+
+        const centerLat = points.reduce((sum, p) => sum + p[0], 0) / points.length;
+        const centerLng = points.reduce((sum, p) => sum + p[1], 0) / points.length;
+        const center: [number, number] = [centerLat, centerLng];
+
+        // 先寫一個 haversine 距離計算函式（參考前面）
+        function toRad(deg: number) {
+            return (deg * Math.PI) / 180;
+        }
+
+        function haversineDistance([lat1, lng1]: [number, number], [lat2, lng2]: [number, number]) {
+            const R = 6371000;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+
+            const a =
+                Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        const radius = Math.max(...points.map(p => haversineDistance(center, p)));
+
+        return { center, radius };
+    }
     private async calculateAreaBoundary(
         areaId: number
     ): Promise<Prisma.InputJsonValue> {
@@ -112,6 +153,9 @@ export class CoordinatesController {
                 boundary: true,
             },
         });
+        if (!area) {
+            return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "樣區不存在");
+        }
 
         // 若樣區不存在或沒有邊界資料
         if (!area || !area.boundary) {
@@ -121,18 +165,18 @@ export class CoordinatesController {
                 "樣區不存在或沒有邊界資料"
             );
         }
-
-        // 確認邊界資料為陣列且點數 > 3（能形成多邊形）
-        if (Array.isArray(area.boundary) && area.boundary.length > 3) {
-            return successResponse(res, RESPONSE_CODE.SUCCESS, area.boundary);
+        const boundary = area.boundary as unknown as GeoJSONPolygon;
+        if (
+            boundary?.type === "Polygon" &&
+            Array.isArray(boundary.coordinates?.[0]) &&
+            boundary.coordinates[0].length >= 3
+        ) {
+            console.log("樣區邊界點數:", boundary.coordinates[0].length);
+            return successResponse(res, RESPONSE_CODE.SUCCESS, boundary.coordinates[0]);
+        } else {
+            console.warn("邊界資料格式錯誤或不足以形成多邊形:", area.boundary);
+            return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "邊界資料錯誤");
         }
-
-        // 邊界點數量不足
-        return errorResponse(
-            res,
-            RESPONSE_CODE.BAD_REQUEST,
-            "樣區邊界點數量不足，無法形成多邊形"
-        );
     }
 
     // 更新設備座標
