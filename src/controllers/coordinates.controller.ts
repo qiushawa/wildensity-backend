@@ -153,9 +153,6 @@ export class CoordinatesController {
                 boundary: true,
             },
         });
-        if (!area) {
-            return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "樣區不存在");
-        }
 
         // 若樣區不存在或沒有邊界資料
         if (!area || !area.boundary) {
