@@ -31,8 +31,10 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
     const areasWithCircles = areas.map(area => {
         let circle = null;
         const boundary = area.boundary as unknown as GeoJSONPolygon;
+        let polygonCircle = null;
         if (boundary.type === 'Polygon') {
-            circle = this.polygonToCircleFromGeoJSON(boundary);
+            polygonCircle = this.polygonToCircleFromGeoJSON(boundary);
+            circle = polygonCircle;
         }
         try {
             if (area.boundary && boundary.type === 'Polygon') {
