@@ -132,6 +132,7 @@ export class CoordinatesController {
                 area_id: true,
                 latitude: true,
                 longitude: true,
+                location_description: true,
             },
         });
         if (device) {
@@ -165,7 +166,6 @@ export class CoordinatesController {
             Array.isArray(boundary.coordinates?.[0]) &&
             boundary.coordinates[0].length >= 3
         ) {
-            console.log("樣區邊界點數:", boundary.coordinates[0].length);
             return successResponse(res, RESPONSE_CODE.SUCCESS, boundary.coordinates[0]);
         } else {
             console.warn("邊界資料格式錯誤或不足以形成多邊形:", area.boundary);

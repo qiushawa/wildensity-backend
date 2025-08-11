@@ -23,7 +23,7 @@ model device {
 
 model area {
   area_id   Int      @id @default(autoincrement())
-  area_name String   @db.VarChar(100)
+  area_name String?  @db.VarChar(100)
   boundary  Json?
   devices   device[] @relation("AreaToDevice")
 }
