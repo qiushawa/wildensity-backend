@@ -29,30 +29,31 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
     });
 
     const areasWithCircles = areas.map(area => {
-        let circle = null;
-        const boundary = area.boundary as unknown as GeoJSONPolygon;
-        let polygonCircle = null;
-        if (boundary.type === 'Polygon') {
-            polygonCircle = this.polygonToCircleFromGeoJSON(boundary);
-            circle = polygonCircle;
-        }
+        let circle: any = undefined;
+
         try {
-            if (area.boundary && boundary.type === 'Polygon') {
-                circle = this.polygonToCircleFromGeoJSON(boundary);
-                console.log('area_id:', area.area_id, 'circle:', circle);
+            // 確保 boundary 存在且為物件
+            if (area.boundary) {
+                const boundary = area.boundary as unknown as GeoJSONPolygon;
+
+                if (boundary?.type === 'Polygon') {
+                    circle = this.polygonToCircleFromGeoJSON(boundary);
+                }
             }
         } catch (error) {
-            console.error('計算圓心半徑失敗:', error);
+            console.error(`計算樣區 ${area.area_id} 的圓心半徑失敗:`, error);
         }
+
         return {
             ...area,
-            circle,
+            circle, // 沒有就 undefined
         };
     });
-    // Remove or restrict logging of potentially sensitive or large data in production
+
     if (process.env.NODE_ENV !== 'production') {
         console.log("樣區:", areasWithCircles);
     }
+
     return successResponse(res, RESPONSE_CODE.SUCCESS, areasWithCircles);
 }
 
