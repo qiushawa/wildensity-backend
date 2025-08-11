@@ -50,10 +50,6 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
         };
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-        console.log("樣區:", areasWithCircles);
-    }
-
     return successResponse(res, RESPONSE_CODE.SUCCESS, areasWithCircles);
 }
 
@@ -81,7 +77,7 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
             const newArea = await prisma.area.create({
                 data: {
                     area_id: parsedAreaId,
-                    area_name: `${areaName || "未命名樣區"}`,
+                    area_name: areaName,
                 },
             });
             return successResponse(

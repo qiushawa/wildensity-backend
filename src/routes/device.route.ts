@@ -8,9 +8,10 @@ deviceRouter.route('/')
     .get(controller.getAllDevice.bind(controller))
     .post(controller.createDevice.bind(controller));
 
-deviceRouter.route('/:deviceId') // 不允許直接更新設備資料
+deviceRouter.route('/:deviceId')
     .get(controller.getDevice.bind(controller))
-    .delete(controller.deleteDevice.bind(controller));
+    .delete(controller.deleteDevice.bind(controller))
+    .patch(controller.updateDevice.bind(controller));
 
 
 deviceRouter.route('/:deviceId/coordinates')

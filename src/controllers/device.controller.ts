@@ -100,4 +100,29 @@ export class DeviceController extends CoordinatesController {
             "刪除裝置失敗"
         );
     }
+
+    async updateDevice(req: Request, res: Response): Promise<void> {
+        const deviceId = parseInt(req.params.deviceId, 10);
+        const areaId = parseInt(req.params.areaId, 10);
+        const { deviceName } = req.body;
+        console.log("更新設備:", deviceId, "樣區:", areaId, "名稱:", deviceName);
+        try {
+            const device = await prisma.device.findUnique({
+                where: { device_id_area_id: { device_id: deviceId, area_id: areaId } },
+            });
+            if (!device) {
+                return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "設備不存在");
+            }
+
+            const updatedDevice = await prisma.device.update({
+                where: { device_id_area_id: { device_id: deviceId, area_id: areaId } },
+                data: {
+                    device_name: deviceName,
+                },
+            });
+            return successResponse(res, RESPONSE_CODE.SUCCESS, updatedDevice, "設備更新成功");
+        } catch (error) {
+            return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "設備更新失敗");
+        }
+    }
 }
