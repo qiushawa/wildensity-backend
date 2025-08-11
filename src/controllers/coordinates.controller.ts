@@ -13,7 +13,7 @@ export class CoordinatesController {
     // 主函式
 
 
-    public  polygonToCircleFromGeoJSON(boundary: {
+    public polygonToCircleFromGeoJSON(boundary: {
         type: string;
         coordinates: number[][][];
     }) {
@@ -47,9 +47,7 @@ export class CoordinatesController {
 
         return { center, radius };
     }
-    private async calculateAreaBoundary(
-        areaId: number
-    ): Promise<Prisma.InputJsonValue> {
+    private async calculateAreaBoundary(areaId: number): Promise<Prisma.InputJsonValue> {
         // 取得該樣區下所有設備的座標
         const devices = await prisma.device.findMany({
             where: { area_id: areaId },
@@ -62,10 +60,9 @@ export class CoordinatesController {
         // 過濾掉沒有座標的設備
         const points: [number, number][] = devices
             .filter((d) => d.latitude !== null && d.longitude !== null)
-            .map((d) => [d.longitude!, d.latitude!]); // GeoJSON 是 [lng, lat]
+            .map((d) => [d.longitude!, d.latitude!]);
 
-        if (points.length < 3) {
-            // 少於三點無法形成多邊形
+        if (points.length < 3) {// 少於三點無法形成多邊形
             return {
                 type: "Polygon",
                 coordinates: [points.length > 0 ? [...points, points[0]] : []], // 若只有一點或兩點，仍包成合法格式
@@ -188,7 +185,7 @@ export class CoordinatesController {
             where: {
                 device_id_area_id: { device_id: deviceId, area_id: areaId }
             },
-            data: { latitude, longitude, location_description },
+            data: { latitude, longitude, location_description, status: "OFFLINE" },
         });
         // 如果更新成功，更新樣區邊界
         if (updatedDevice.area_id) {
