@@ -24,7 +24,7 @@ export class AreaController extends CoordinatesController {
 async getAllAreas(req: Request, res: Response): Promise<void> {
     const areas = await prisma.area.findMany({
         include: {
-            devices: true, // 包含設備資訊
+            cameras: true, // 包含相機資訊
         }
     });
 
@@ -120,12 +120,11 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
 
     async getAreaDevices(req: Request, res: Response): Promise<void> {
         const areaId = parseInt(req.params.areaId, 10);
-        const devices = await prisma.device.findMany({
+        const devices = await prisma.camera.findMany({
             where: { area_id: areaId },
         });
         return successResponse(res, RESPONSE_CODE.SUCCESS, devices);
     }
-
 
 
 }

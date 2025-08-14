@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import deviceRouter from './device.route';
+import deviceRouter from './camera.route';
 import recordRouter from './record.route';
 import { AreaController } from '../controllers/area.controller';
 const areaRouter = Router();
@@ -19,8 +19,8 @@ areaRouter.route('/:areaId/coordinates')
     .get(controller.getAreaBoundary.bind(controller))
     .patch(controller.updateAreaBoundary.bind(controller));
 
-// 樣區設備資訊
-areaRouter.use('/:areaId/devices', deviceRouter);
+// 樣區相機資訊
+areaRouter.use('/:areaId/cameras', deviceRouter);
 
 // 接收樣區觀測資料
 areaRouter.use('/:areaId/records', recordRouter);

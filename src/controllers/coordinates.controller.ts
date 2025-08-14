@@ -48,8 +48,8 @@ export class CoordinatesController {
         return { center, radius };
     }
     private async calculateAreaBoundary(areaId: number): Promise<Prisma.InputJsonValue> {
-        // 取得該樣區下所有設備的座標
-        const devices = await prisma.device.findMany({
+        // 取得該樣區下所有相機的座標
+        const cameras = await prisma.camera.findMany({
             where: { area_id: areaId },
             select: {
                 latitude: true,
@@ -57,10 +57,10 @@ export class CoordinatesController {
             },
         });
 
-        // 過濾掉沒有座標的設備
-        const points: [number, number][] = devices
-            .filter((d) => d.latitude !== null && d.longitude !== null)
-            .map((d) => [d.longitude!, d.latitude!]);
+        // 過濾掉沒有座標的相機
+        const points: [number, number][] = cameras
+            .filter((c) => c.latitude !== null && c.longitude !== null)
+            .map((c) => [c.longitude!, c.latitude!]);
 
         if (points.length < 3) {// 少於三點無法形成多邊形
             return {
@@ -117,14 +117,14 @@ export class CoordinatesController {
         return lower.concat(upper);
     }
 
-    // 獲取設備座標
-    public async getDeviceCoordinates(req: Request, res: Response): Promise<void> {
-        const deviceId = parseInt(req.params.deviceId, 10);
+    // 獲取相機座標
+    public async getCameraCoordinates(req: Request, res: Response): Promise<void> {
+        const cameraId = parseInt(req.params.cameraId, 10);
         const areaId = parseInt(req.params.areaId, 10);
-        const device = await prisma.device.findUnique({
+        const camera = await prisma.camera.findUnique({
             where: {
-                device_id_area_id: {
-                    device_id: deviceId,
+                camera_id_area_id: {
+                    camera_id: cameraId,
                     area_id: areaId,
                 },
             },
@@ -133,12 +133,13 @@ export class CoordinatesController {
                 latitude: true,
                 longitude: true,
                 location_description: true,
+                camera_name: true,
             },
         });
-        if (device) {
-            return successResponse(res, RESPONSE_CODE.SUCCESS, device);
+        if (camera) {
+            return successResponse(res, RESPONSE_CODE.SUCCESS, camera);
         }
-        return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "設備不存在");
+        return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "相機不存在");
     }
 
     public async getAreaBoundary(req: Request, res: Response): Promise<void> {
@@ -173,40 +174,40 @@ export class CoordinatesController {
         }
     }
 
-    // 更新設備座標
-    public async updateDeviceCoordinates(
+    // 更新相機座標
+    public async updateCameraCoordinates(
         req: Request,
         res: Response
     ): Promise<void> {
-        const deviceId = parseInt(req.params.deviceId, 10);
+        const cameraId = parseInt(req.params.cameraId, 10);
         const areaId = parseInt(req.params.areaId, 10);
         const { latitude, longitude, location_description } = req.body;
-        const updatedDevice = await prisma.device.update({
+        const updatedCamera = await prisma.camera.update({
             where: {
-                device_id_area_id: { device_id: deviceId, area_id: areaId }
+                camera_id_area_id: { camera_id: cameraId, area_id: areaId }
             },
             data: { latitude, longitude, location_description, status: "OFFLINE" },
         });
         // 如果更新成功，更新樣區邊界
-        if (updatedDevice.area_id) {
+        if (updatedCamera.area_id) {
             const areaBoundary = await this.calculateAreaBoundary(
-                updatedDevice.area_id
+                updatedCamera.area_id
             );
             await prisma.area.update({
-                where: { area_id: updatedDevice.area_id },
+                where: { area_id: updatedCamera.area_id },
                 data: { boundary: areaBoundary },
             });
             return successResponse(
                 res,
                 RESPONSE_CODE.SUCCESS,
-                updatedDevice,
-                "設備座標更新成功"
+                updatedCamera,
+                "相機座標更新成功"
             );
         }
         return errorResponse(
             res,
             RESPONSE_CODE.INTERNAL_SERVER_ERROR,
-            "設備座標更新失敗"
+            "相機座標更新失敗"
         );
     }
 
