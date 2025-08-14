@@ -1,71 +1,74 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+    provider = "mysql"
+    url      = env("DATABASE_URL")
 }
 
-model device {
-  device_id            Int
-  area_id              Int
-  device_name          String?             @db.VarChar(50)
-  location_description String?             @db.VarChar(50)
-  longitude            Float?
-  latitude             Float?
-  status               DeviceStatus?       @default(LOCATION_UNKNOWN)
-  appearance_records   appearance_record[] @relation("DeviceToAppearanceRecord")
-  area                 area                @relation("AreaToDevice", fields: [area_id], references: [area_id])
+model Camera {
+    camera_id            Int
+    area_id              Int
+    camera_name          String?             @db.VarChar(50)
+    location_description String?             @db.VarChar(50)
+    longitude            Float?
+    latitude             Float?
+    sd_card_capacity     Int
+    sd_card_used_space   Int
+    status               CameraStatus?       @default(LOCATION_UNKNOWN)
+    area                 Area                @relation("AreaToCamera", fields: [area_id], references: [area_id])
+    detection_events     DetectionEvents[]
 
-  @@id([device_id, area_id])
+    @@id([camera_id, area_id])
 }
 
-model area {
-  area_id   Int      @id @default(autoincrement())
-  area_name String?  @db.VarChar(100)
-  boundary  Json?
-  devices   device[] @relation("AreaToDevice")
+model Area {
+    area_id   Int      @id @default(autoincrement())
+    area_name String?  @db.VarChar(100)
+    boundary  Json?
+    cameras   Camera[] @relation("AreaToCamera")
 }
 
-model species {
-  species_id         Int                 @id @default(autoincrement())
-  species_name       String              @db.VarChar(100)
-  appearance_records appearance_record[] @relation("SpeciesToAppearanceRecord")
-  activity_peaks     activity_peak[]
+model Species {
+    species_id         Int                 @id @default(autoincrement())
+    species_name       String              @db.VarChar(100)
+    detection_events   DetectionEvents[]
 }
 
-model appearance_record {
-  record_id       Int       @id @default(autoincrement())
-  device_id       Int
-  area_id         Int
-  species_id      Int
-  count           Int       @default(1)
-  average_speed   Float?
-  appearance_time DateTime  @default(now())
-  leave_time      DateTime?
-  device          device    @relation("DeviceToAppearanceRecord", fields: [device_id, area_id], references: [device_id, area_id])
-  species         species   @relation("SpeciesToAppearanceRecord", fields: [species_id], references: [species_id])
+model DetectionEvents {
+    event_id            Int      @id @default(autoincrement())
 
-  @@index([device_id, area_id])
-  @@index([species_id], map: "appearance_record_species_id_fkey")
+    camera_id           Int
+    area_id             Int
+    species_id          Int
+
+    start_timestamp     DateTime? @db.DateTime(0)
+    end_timestamp       DateTime? @db.DateTime(0)
+
+    duration_s          Float?
+    movement_distance_m Float?
+    num_individuals     Int      @default(1)
+
+    camera              Camera   @relation(fields: [camera_id, area_id], references: [camera_id, area_id])
+    species             Species  @relation(fields: [species_id], references: [species_id])
+
+    track_points        RadarTrackPoint[]
 }
 
-// 活動峰值紀錄 [僅作為開發時使用，實際應用中不需要]
-model activity_peak {
-  peak_id       Int      @id @default(autoincrement())
-  species_id    Int
-  activity_peak Float
-  ci_lower      Float
-  ci_upper      Float
-  created_at    DateTime @default(now())
-  species       species  @relation(fields: [species_id], references: [species_id])
+model RadarTrackPoint {
+    track_point_id Int      @id @default(autoincrement())
+    event_id       Int
 
-  @@index([species_id], map: "activity_peak_species_id_fkey")
+    timestamp      DateTime? @db.DateTime(0)
+    coordinate_x   Float
+    coordinate_y   Float
+
+    event          DetectionEvents @relation(fields: [event_id], references: [event_id])
 }
 
-enum DeviceStatus {
-  ONLINE
-  OFFLINE
-  LOCATION_UNKNOWN
+enum CameraStatus {
+    ONLINE
+    OFFLINE
+    LOCATION_UNKNOWN
 }
