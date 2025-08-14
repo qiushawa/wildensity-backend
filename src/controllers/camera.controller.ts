@@ -98,7 +98,7 @@ export class CameraController extends CoordinatesController {
         const camera = await prisma.camera.delete({
             where: { camera_id_area_id: { camera_id: cameraId, area_id: areaId } },
         });
-        if (camera) return successResponse(res, RESPONSE_CODE.SUCCESS);
+        if (camera) return successResponse(res, RESPONSE_CODE.SUCCESS, { deletedCamera: camera });
         return errorResponse(
             res,
             RESPONSE_CODE.INTERNAL_SERVER_ERROR,
