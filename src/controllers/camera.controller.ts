@@ -21,7 +21,7 @@ export class CameraController extends CoordinatesController {
             where: { camera_id_area_id: { camera_id: cameraId, area_id: areaId } },
         });
         if (camera) return successResponse(res, RESPONSE_CODE.SUCCESS, camera);
-        return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "攝影機不存在");
+        return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "相機不存在");
     }
 
     async createCamera(req: Request, res: Response): Promise<void> {
@@ -30,13 +30,13 @@ export class CameraController extends CoordinatesController {
         const areaId = parseInt(req.params.areaId, 10);
         const sdCardCapacity = parseInt(req.body.sdCardCapacity, 10);
         if (!cameraId || !areaId) {
-            return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "攝影機ID和樣區ID是必需的");
+            return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "相機ID和樣區ID是必需的");
         }
 
         const parsedCameraId = cameraId;
         const parsedAreaId = areaId;
         if (isNaN(parsedCameraId) || isNaN(parsedAreaId)) {
-            return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "攝影機ID和樣區ID必須是有效的數字");
+            return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "相機ID和樣區ID必須是有效的數字");
         }
 
 
@@ -50,7 +50,7 @@ export class CameraController extends CoordinatesController {
             });
 
             if (existingCamera) {
-                return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "攝影機已存在");
+                return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "相機已存在");
             }
 
             if (!existingArea) {
@@ -69,14 +69,14 @@ export class CameraController extends CoordinatesController {
                     longitude: null,
                     sd_card_capacity: sdCardCapacity,
                     sd_card_used_space: 0,
-                    camera_name: `未命名攝影機 - ${parsedCameraId}`,
+                    camera_name: `未命名相機 - ${parsedCameraId}`,
                 }
             });
 
-            return successResponse(res, RESPONSE_CODE.CREATED, camera, "攝影機創建成功");
+            return successResponse(res, RESPONSE_CODE.CREATED, camera, "相機創建成功");
         } catch (error: any) {
-            console.error("創建攝影機時發生錯誤：", error.message);
-            return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "攝影機創建失敗：" + error.message);
+            console.error("創建相機時發生錯誤：", error.message);
+            return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "相機創建失敗：" + error.message);
         }
     }
 
@@ -92,9 +92,9 @@ export class CameraController extends CoordinatesController {
             return errorResponse(
                 res,
                 RESPONSE_CODE.NOT_FOUND,
-                "你不能刪除不存在的裝置"
+                "你不能刪除不存在的相機"
             );
-        // 刪除裝置
+        // 刪除相機
         const camera = await prisma.camera.delete({
             where: { camera_id_area_id: { camera_id: cameraId, area_id: areaId } },
         });
@@ -110,13 +110,13 @@ export class CameraController extends CoordinatesController {
         const cameraId = parseInt(req.params.cameraId, 10);
         const areaId = parseInt(req.params.areaId, 10);
         const { cameraName } = req.body;
-        console.log("更新攝影機:", cameraId, "樣區:", areaId, "名稱:", cameraName);
+        console.log("更新相機:", cameraId, "樣區:", areaId, "名稱:", cameraName);
         try {
             const camera = await prisma.camera.findUnique({
                 where: { camera_id_area_id: { camera_id: cameraId, area_id: areaId } },
             });
             if (!camera) {
-                return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "設備不存在");
+                return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "相機不存在");
             }
 
             const updatedCamera = await prisma.camera.update({
@@ -125,9 +125,9 @@ export class CameraController extends CoordinatesController {
                     camera_name: cameraName,
                 },
             });
-            return successResponse(res, RESPONSE_CODE.SUCCESS, updatedCamera, "設備更新成功");
+            return successResponse(res, RESPONSE_CODE.SUCCESS, updatedCamera, "相機更新成功");
         } catch (error) {
-            return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "設備更新失敗");
+            return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "相機更新失敗");
         }
     }
 }

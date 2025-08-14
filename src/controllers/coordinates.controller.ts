@@ -48,7 +48,7 @@ export class CoordinatesController {
         return { center, radius };
     }
     private async calculateAreaBoundary(areaId: number): Promise<Prisma.InputJsonValue> {
-        // 取得該樣區下所有攝影機的座標
+        // 取得該樣區下所有相機的座標
         const cameras = await prisma.camera.findMany({
             where: { area_id: areaId },
             select: {
@@ -57,7 +57,7 @@ export class CoordinatesController {
             },
         });
 
-        // 過濾掉沒有座標的攝影機
+        // 過濾掉沒有座標的相機
         const points: [number, number][] = cameras
             .filter((c) => c.latitude !== null && c.longitude !== null)
             .map((c) => [c.longitude!, c.latitude!]);
@@ -117,7 +117,7 @@ export class CoordinatesController {
         return lower.concat(upper);
     }
 
-    // 獲取設備座標
+    // 獲取相機座標
     public async getCameraCoordinates(req: Request, res: Response): Promise<void> {
         const cameraId = parseInt(req.params.cameraId, 10);
         const areaId = parseInt(req.params.areaId, 10);
@@ -139,7 +139,7 @@ export class CoordinatesController {
         if (camera) {
             return successResponse(res, RESPONSE_CODE.SUCCESS, camera);
         }
-        return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "攝影機不存在");
+        return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "相機不存在");
     }
 
     public async getAreaBoundary(req: Request, res: Response): Promise<void> {
@@ -174,7 +174,7 @@ export class CoordinatesController {
         }
     }
 
-    // 更新設備座標
+    // 更新相機座標
     public async updateCameraCoordinates(
         req: Request,
         res: Response
@@ -201,13 +201,13 @@ export class CoordinatesController {
                 res,
                 RESPONSE_CODE.SUCCESS,
                 updatedCamera,
-                "設備座標更新成功"
+                "相機座標更新成功"
             );
         }
         return errorResponse(
             res,
             RESPONSE_CODE.INTERNAL_SERVER_ERROR,
-            "設備座標更新失敗"
+            "相機座標更新失敗"
         );
     }
 

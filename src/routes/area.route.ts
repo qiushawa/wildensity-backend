@@ -19,7 +19,7 @@ areaRouter.route('/:areaId/coordinates')
     .get(controller.getAreaBoundary.bind(controller))
     .patch(controller.updateAreaBoundary.bind(controller));
 
-// 樣區設備資訊
+// 樣區相機資訊
 areaRouter.use('/:areaId/cameras', deviceRouter);
 
 // 接收樣區觀測資料
