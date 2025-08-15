@@ -8,7 +8,7 @@ export class EventController {
 
     async startEvent(req: Request, res: Response): Promise<void> {
         const { cameraId, speciesId, numIndividuals = 1 } = req.body;
-        const areaId = req.params.areaId;
+        const {areaId} = req.params;
 
         if (!areaId || !cameraId || !speciesId) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "缺少必要欄位");
