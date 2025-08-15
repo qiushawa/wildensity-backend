@@ -67,23 +67,19 @@ export class EventController {
             const eventExists = await prisma.detectionEvents.findUnique({
                 where: { event_id: parseInt(eventId, 10) }
             });
-
             if (!eventExists) {
                 return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "該事件不存在");
             }
             // 取得事件所有軌跡點
             const trackPoints = await prisma.radarTrackPoint.findMany({
                 where: { event_id: parseInt(eventId, 10) },
-                orderBy: { timestamp: 'asc' }
             });
-
             if (trackPoints.length === 0) {
                 return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "該事件沒有軌跡點，無法結束");
             }
 
             const start = eventExists.start_timestamp!;
             const end = new Date();
-
             // 計算移動距離
             let movement = 0;
             for (let i = 1; i < trackPoints.length; i++) {
@@ -94,7 +90,6 @@ export class EventController {
 
             // 計算 duration_s（秒）
             const duration_s = (end.getTime() - start.getTime()) / 1000;
-
             // 更新事件
             const event = await prisma.detectionEvents.update({
                 where: { event_id: parseInt(eventId, 10) },
@@ -104,8 +99,6 @@ export class EventController {
                     movement_distance_m: movement
                 }
             });
-
-
             return successResponse(res, RESPONSE_CODE.SUCCESS, event, "事件已結束");
         } catch (error) {
             console.error(error);
