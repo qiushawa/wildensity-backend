@@ -57,4 +57,3 @@ WildlifeBackend/
 #### 密度計算 ([density.R](calculate/density.R))
 - 基於 REST 方法計算動物密度
 - 公式：`D = (Y_total * t_total) / (s * T * ak)`
-

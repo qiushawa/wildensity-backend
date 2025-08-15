@@ -1,53 +1,71 @@
 #!/usr/bin/env Rscript
 
-suppressMessages(library(optparse))
-suppressMessages(library(parsedate))
+suppressWarnings(suppressMessages({
+  library(readr)   # 讀 CSV
+  library(dplyr)   # 資料清理
+}))
 
-calculate_rest_density <- function(df, s, T, ak) {
-    if (!all(c("appearance_time", "leave_time", "count") %in% colnames(df))) {
-        stop("REST 密度計算需要 'appearance_time', 'leave_time', 'count' 欄位")
-    }
 
-    df$start <- parsedate::parse_date(df$appearance_time)
-    df$end <- parsedate::parse_date(df$leave_time)
-
-    if (any(is.na(df$start) | is.na(df$end))) {
-        stop("無法解析 'appearance_time' 或 'leave_time'")
-    }
-
-    durations <- as.numeric(difftime(df$end, df$start, units = "secs")) # 計算每筆資料的停留時間
-    t_total <- sum(durations * df$count)  # 每筆乘以 count，表示總停留秒數
-    Y_total <- sum(df$count)
-
-    if (s <= 0 || T <= 0 || ak <= 0) {
-        stop("參數 s, T, Ak 必須為正數")
-    }
-
-    D <- (Y_total * t_total) / (s * T * ak)
-    round(D, 5)
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 5) {
+  stop("Usage: Rscript calc_Dk.R <csv_file> <v_k> <A_k> <n_cam> <theta_mean> [theta_sd] [mc=10000]
+  例：Rscript calc_Dk.R camera_data.csv 4.03 0.71 30 0.65 0.06 10000")
 }
 
-# ----------- 主程式 ---------------
-main <- function() {
-    option_list <- list(
-        make_option(c("-i", "--input"), type = "character", help = "輸入 CSV 檔案路徑"),
-        make_option(c("-s", "--area"), type = "double", help = "焦點區域面積 (km2)"),
-        make_option(c("-t", "--duration"), type = "double", help = "相機總工作秒數"),
-        make_option(c("-a", "--ak"), type = "double", help = "活動性係數 Ak")
-    )
-    opt <- parse_args(OptionParser(option_list = option_list))
+csv_file   <- args[1]
+v_k        <- as.numeric(args[2])   # km/day
+A_k        <- as.numeric(args[3])   # 活動峰值
+n_cam      <- as.numeric(args[4])   # 相機台數
+theta_mean <- as.numeric(args[5])   # 平均弧度
+theta_sd   <- ifelse(length(args) >= 6, as.numeric(args[6]), NA_real_) # 標準差
+mc_n       <- ifelse(length(args) >= 7, as.integer(args[7]), 1L) # Monte Carlo 次數
 
-    if (!file.exists(opt$input)) stop("找不到檔案：", opt$input)
+# 讀資料（允許 Y,T,r 或 Y,T,r_m；允許有或沒有 theta）
+dat <- read_csv(csv_file, show_col_types = FALSE) |>
+  mutate(across(everything(), ~ ifelse(. %in% c("/", "\\", "NA", ""), NA, .))) |>
+  mutate(across(where(is.character), readr::parse_number))
 
-    df <- read.csv(opt$input)
-    if (!all(c("appearance_time", "leave_time", "count") %in% colnames(df))) {
-        stop("資料缺少必要欄位")
-    }
+# 欄位檢查與單位處理
+has_r_km  <- "r"   %in% names(dat)
+has_r_m   <- "r_m" %in% names(dat)
+has_theta <- "theta" %in% names(dat)
 
-    D <- calculate_rest_density(df, opt$area, opt$duration, opt$ak)
-    cat(D, "\n")
+if (!(has_r_km || has_r_m)) stop("CSV 需包含 r(公里) 或 r_m(公尺) 其中之一")
+if (!all(c("Y","T") %in% names(dat))) stop("CSV 必須包含欄位：Y, T")
+
+if (has_r_m && !has_r_km) dat <- dat |> mutate(r = r_m / 1000) # m -> km
+
+# 去除不完整列
+dat <- dat |> filter(!is.na(Y), !is.na(T), !is.na(r))
+
+# 計算函式（單次）
+calc_once <- function(theta_vec) {
+  sum((dat$Y/dat$T)*(pi/(dat$r*v_k*A_k*(2+theta_vec)))) / n_cam
 }
 
-if (sys.nframe() == 0) {
-    main()
+# 取得 theta 向量
+if (has_theta) {
+  # 直接使用檔內 theta 值（假設為弧度）
+  Dk <- calc_once(dat$theta)
+  cat(sprintf("Dk = %.6f (使用檔內 theta)\n", Dk))
+} else if (!is.na(theta_sd) && mc_n > 1) {
+  # 蒙地卡羅（theta ~ N(mean, sd)），每列各抽一個 theta_i
+  set.seed(42)
+  sims <- replicate(mc_n, {
+    theta_draw <- rnorm(n = nrow(dat), mean = theta_mean, sd = theta_sd)
+    theta_draw[theta_draw < 0] <- 0        # 弧度下限裁切
+    theta_draw[theta_draw > pi] <- pi      # 上限不超過 π
+    calc_once(theta_draw)
+  })
+  Dk_mean <- mean(sims)
+  Dk_sd   <- sd(sims)
+  ci <- quantile(sims, c(0.025, 0.5, 0.975))
+  cat(sprintf("Dk(mean) = %.6f, SD = %.6f\n", Dk_mean, Dk_sd))
+  cat(sprintf("2.5%% = %.6f, 50%%(median) = %.6f, 97.5%% = %.6f\n",
+              ci[1], ci[2], ci[3]))
+} else {
+  # 單值：以 theta_mean 套用到所有列
+  theta_vec <- rep(theta_mean, nrow(dat))
+  Dk <- calc_once(theta_vec)
+  cat(sprintf("Dk = %.6f (theta = %.4f 固定值)\n", Dk, theta_mean))
 }

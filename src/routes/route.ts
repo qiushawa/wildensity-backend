@@ -1,6 +1,5 @@
-import { Router } from 'express'
+import e, { Router } from 'express'
 import speciesRouter from './species.route'
-import recordRouter from './record.route'
 import downloadRouter from './download.route'
 import areaRouter from './area.route'
 import { prisma } from '../common/database'
@@ -11,7 +10,6 @@ apiRouter.get('/message', (req, res) => {
 })
 
 apiRouter.use('/species', speciesRouter);
-apiRouter.use('/records', recordRouter);
 apiRouter.use('/download', downloadRouter);
 apiRouter.use('/areas', areaRouter);
 
