@@ -83,8 +83,23 @@ export class EventController {
             // 計算移動距離
             let movement = 0;
             for (let i = 1; i < trackPoints.length; i++) {
-                const dx = trackPoints[i].coordinate_x - trackPoints[i - 1].coordinate_x;
-                const dy = trackPoints[i].coordinate_y - trackPoints[i - 1].coordinate_y;
+                const prev = trackPoints[i - 1];
+                const curr = trackPoints[i];
+                const prevX = Number(prev.coordinate_x);
+                const prevY = Number(prev.coordinate_y);
+                const currX = Number(curr.coordinate_x);
+                const currY = Number(curr.coordinate_y);
+
+                // 檢查座標是否有效
+                if (
+                    isNaN(prevX) || isNaN(prevY) ||
+                    isNaN(currX) || isNaN(currY)
+                ) {
+                    continue; // 跳過無效座標
+                }
+
+                const dx = currX - prevX;
+                const dy = currY - prevY;
                 movement += Math.sqrt(dx * dx + dy * dy);
             }
 
