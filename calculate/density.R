@@ -8,8 +8,8 @@ suppressWarnings(suppressMessages({
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 5) {
-  stop("Usage: Rscript calc_Dk.R <csv_file> <v_k> <A_k> <n_cam> <theta_mean> [theta_sd] [mc=10000]
-  例：Rscript calc_Dk.R camera_data.csv 4.03 0.71 30 0.65 0.06 10000")
+  stop("Usage: Rscript density.R <csv_file> <v_k> <A_k> <n_cam> <theta_mean> [theta_sd] [mc=10000]
+  例：Rscript density.R camera_data.csv 4.03 0.71 30 0.65 0.06 10000")
 }
 
 csv_file   <- args[1]

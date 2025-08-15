@@ -60,7 +60,6 @@ model RadarTrackPoint {
     track_point_id Int      @id @default(autoincrement())
     event_id       Int
 
-    timestamp      DateTime? @db.DateTime(0)
     coordinate_x   Float
     coordinate_y   Float
 

@@ -37,7 +37,7 @@ export class EventController {
 
     async addTrackPoints(req: Request, res: Response): Promise<void> {
         const { eventId } = req.params;
-        const { points } = req.body; // [{timestamp,x,y}, ...]
+        const { points } = req.body; // [{x,y}, ...]
         console.log(eventId);
         if (!points || !Array.isArray(points) || points.length === 0) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "缺少軌跡點");
@@ -46,7 +46,6 @@ export class EventController {
         try {
             const trackPointsData = points.map((p: any) => ({
                 event_id: parseInt(eventId, 10),
-                timestamp: new Date(),
                 coordinate_x: p.x,
                 coordinate_y: p.y
             }));
@@ -64,6 +63,14 @@ export class EventController {
         const { eventId } = req.params;
 
         try {
+            // 取得事件
+            const eventExists = await prisma.detectionEvents.findUnique({
+                where: { event_id: parseInt(eventId, 10) }
+            });
+
+            if (!eventExists) {
+                return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "該事件不存在");
+            }
             // 取得事件所有軌跡點
             const trackPoints = await prisma.radarTrackPoint.findMany({
                 where: { event_id: parseInt(eventId, 10) },
@@ -74,8 +81,8 @@ export class EventController {
                 return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "該事件沒有軌跡點，無法結束");
             }
 
-            const start = trackPoints[0].timestamp!;
-            const end = trackPoints[trackPoints.length - 1].timestamp!;
+            const start = eventExists.start_timestamp!;
+            const end = new Date();
 
             // 計算移動距離
             let movement = 0;
@@ -99,7 +106,7 @@ export class EventController {
             });
 
 
-            return successResponse(res,RESPONSE_CODE.SUCCESS, event, "事件已結束");
+            return successResponse(res, RESPONSE_CODE.SUCCESS, event, "事件已結束");
         } catch (error) {
             console.error(error);
             return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "結束事件失敗");
