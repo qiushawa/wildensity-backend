@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import deviceRouter from './camera.route';
-import recordRouter from './record.route';
+import eventRouter from './events.route';
 import { AreaController } from '../controllers/area.controller';
 const areaRouter = Router();
 
@@ -23,7 +23,7 @@ areaRouter.route('/:areaId/coordinates')
 areaRouter.use('/:areaId/cameras', deviceRouter);
 
 // 接收樣區觀測資料
-areaRouter.use('/:areaId/records', recordRouter);
+areaRouter.use('/:areaId/events', eventRouter);
 
 
 // 樣區物種活動資訊(密度/活動峰值)

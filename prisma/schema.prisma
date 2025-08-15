@@ -46,9 +46,9 @@ model DetectionEvents {
     start_timestamp     DateTime? @db.DateTime(0)
     end_timestamp       DateTime? @db.DateTime(0)
 
-    duration_s          Float?
-    movement_distance_m Float?
-    num_individuals     Int      @default(1)
+    duration_s          Float? // 事件持續時間（秒）
+    movement_distance_m Float? // 事件移動距離（公尺）
+    num_individuals     Int      @default(1) // 事件中個體數量
 
     camera              Camera   @relation(fields: [camera_id, area_id], references: [camera_id, area_id])
     species             Species  @relation(fields: [species_id], references: [species_id])
@@ -60,7 +60,6 @@ model RadarTrackPoint {
     track_point_id Int      @id @default(autoincrement())
     event_id       Int
 
-    timestamp      DateTime? @db.DateTime(0)
     coordinate_x   Float
     coordinate_y   Float
 
