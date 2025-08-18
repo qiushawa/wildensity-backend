@@ -1,71 +1,139 @@
 #!/usr/bin/env Rscript
 
 suppressWarnings(suppressMessages({
-  library(readr)   # 讀 CSV
-  library(dplyr)   # 資料清理
+  library(readr)
+  library(dplyr)
 }))
 
-
-args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 5) {
-  stop("Usage: Rscript density.R <csv_file> <v_k> <A_k> <n_cam> <theta_mean> [theta_sd] [mc=10000]
-  例：Rscript density.R camera_data.csv 4.03 0.71 30 0.65 0.06 10000")
+print_usage <- function() {
+  cat("Usage:\n")
+  cat("  Rscript density.R -a <csv_file> -v <v_k> -n <n_cam> -t <theta_mean> (-A <A_k> | --A_ci <lower,upper>) [-m <mc_n>]\n")
+  cat("\nExamples:\n")
+  cat("  固定 A_k:\n")
+  cat("    Rscript density.R -a camera_data.csv -v 4.03 -A 0.71 -n 30 -t 0.65\n")
+  cat("  A_k 有 CI（蒙地卡羅）:\n")
+  cat("    Rscript density.R -a camera_data.csv -v 4.03 --A_ci 0.65,0.78 -n 30 -t 0.65 -m 10000\n")
 }
 
-csv_file   <- args[1]
-v_k        <- as.numeric(args[2])   # km/day
-A_k        <- as.numeric(args[3])   # 活動峰值
-n_cam      <- as.numeric(args[4])   # 相機台數
-theta_mean <- as.numeric(args[5])   # 平均弧度
-theta_sd   <- ifelse(length(args) >= 6, as.numeric(args[6]), NA_real_) # 標準差
-mc_n       <- ifelse(length(args) >= 7, as.integer(args[7]), 1L) # Monte Carlo 次數
+# 解析參數（允許任意順序），支援 -a -v -A -n -t -m 與 --A_ci
+raw_args <- commandArgs(trailingOnly = TRUE)
+if (length(raw_args) == 0) {
+  print_usage(); quit(status = 1)
+}
 
-# 讀資料（允許 Y,T,r 或 Y,T,r_m；允許有或沒有 theta）
+# 轉成 key->value map，支援形式:
+#  - short flags with value: -a value
+#  - long flag with =: --A_ci=0.65,0.78  OR --A_ci 0.65,0.78
+kwargs <- list()
+i <- 1
+while (i <= length(raw_args)) {
+  arg <- raw_args[i]
+  if (arg %in% c("-h", "--help")) {
+    print_usage(); quit(status = 0)
+  }
+  if (grepl("^--", arg)) {
+    # long flag
+    if (grepl("=", arg)) {
+      parts <- strsplit(sub("^--", "", arg), "=")[[1]]
+      key <- paste0("--", parts[1])
+      val <- paste(parts[-1], collapse = "=")
+      kwargs[[key]] <- val
+      i <- i + 1
+    } else {
+      key <- arg
+      if (i + 1 <= length(raw_args) && !grepl("^-", raw_args[i+1])) {
+        kwargs[[key]] <- raw_args[i+1]
+        i <- i + 2
+      } else {
+        kwargs[[key]] <- NA
+        i <- i + 1
+      }
+    }
+  } else if (grepl("^-", arg)) {
+    # short flag: -a value
+    key <- arg
+    if (i + 1 <= length(raw_args) && !grepl("^-", raw_args[i+1])) {
+      kwargs[[key]] <- raw_args[i+1]
+      i <- i + 2
+    } else {
+      kwargs[[key]] <- NA
+      i <- i + 1
+    }
+  } else {
+    # positional value without flag (ignore)
+    i <- i + 1
+  }
+}
+
+# 必要參數
+required <- c("-a", "-v", "-n", "-t")
+missing <- setdiff(required, names(kwargs))
+if (length(missing) > 0) {
+  cat("缺少必要參數：", paste(missing, collapse = ", "), "\n\n")
+  print_usage(); quit(status = 1)
+}
+
+# 讀取並轉型
+csv_file   <- kwargs[["-a"]]
+v_k        <- as.numeric(kwargs[["-v"]])
+n_cam      <- as.numeric(kwargs[["-n"]])
+theta_mean <- as.numeric(kwargs[["-t"]])
+mc_n       <- ifelse(!is.null(kwargs[["-m"]]), as.integer(kwargs[["-m"]]), 10000L)
+
+# A_k 處理（固定或 CI）
+A_k <- NULL
+A_ci <- NULL
+if ("-A" %in% names(kwargs) && !is.na(kwargs[["-A"]])) {
+  A_k <- as.numeric(kwargs[["-A"]])
+}
+if ("--A_ci" %in% names(kwargs) && !is.na(kwargs[["--A_ci"]])) {
+  tmp <- strsplit(kwargs[["--A_ci"]], ",")[[1]]
+  if (length(tmp) != 2) {
+    stop("--A_ci 必須為 lower,upper 形式（用逗號分隔）")
+  }
+  A_ci <- as.numeric(tmp)
+  if (any(is.na(A_ci))) stop("--A_ci 內容解析失敗")
+}
+if (is.null(A_k) && is.null(A_ci)) {
+  cat("必須提供 -A <A_k> 或 --A_ci <lower,upper>\n")
+  print_usage(); quit(status = 1)
+}
+
+# 讀 CSV
 dat <- read_csv(csv_file, show_col_types = FALSE) |>
   mutate(across(everything(), ~ ifelse(. %in% c("/", "\\", "NA", ""), NA, .))) |>
   mutate(across(where(is.character), readr::parse_number))
 
-# 欄位檢查與單位處理
 has_r_km  <- "r"   %in% names(dat)
 has_r_m   <- "r_m" %in% names(dat)
-has_theta <- "theta" %in% names(dat)
-
 if (!(has_r_km || has_r_m)) stop("CSV 需包含 r(公里) 或 r_m(公尺) 其中之一")
 if (!all(c("Y","T") %in% names(dat))) stop("CSV 必須包含欄位：Y, T")
-
-if (has_r_m && !has_r_km) dat <- dat |> mutate(r = r_m / 1000) # m -> km
-
-# 去除不完整列
+if (has_r_m && !has_r_km) dat <- dat |> mutate(r = r_m / 1000)
 dat <- dat |> filter(!is.na(Y), !is.na(T), !is.na(r))
 
-# 計算函式（單次）
-calc_once <- function(theta_vec) {
-  sum((dat$Y/dat$T)*(pi/(dat$r*v_k*A_k*(2+theta_vec)))) / n_cam
-}
+if (nrow(dat) == 0) stop("無有效資料列 (Y, T, r 欄位皆不可為 NA)")
 
-# 取得 theta 向量
-if (has_theta) {
-  # 直接使用檔內 theta 值（假設為弧度）
-  Dk <- calc_once(dat$theta)
-  cat(sprintf("Dk = %.6f (使用檔內 theta)\n", Dk))
-} else if (!is.na(theta_sd) && mc_n > 1) {
-  # 蒙地卡羅（theta ~ N(mean, sd)），每列各抽一個 theta_i
+# 計算函式（theta 為固定值）
+calc_once <- function(theta_vec, A_k_val) {
+  sum((dat$Y / dat$T) * (pi / (dat$r * v_k * A_k_val * (2 + theta_vec)))) / n_cam
+}
+theta_vec <- rep(theta_mean, nrow(dat))
+
+# 輸出
+if (!is.null(A_ci)) {
+  # Monte Carlo for A_k (uniform in CI)
   set.seed(42)
-  sims <- replicate(mc_n, {
-    theta_draw <- rnorm(n = nrow(dat), mean = theta_mean, sd = theta_sd)
-    theta_draw[theta_draw < 0] <- 0        # 弧度下限裁切
-    theta_draw[theta_draw > pi] <- pi      # 上限不超過 π
-    calc_once(theta_draw)
-  })
-  Dk_mean <- mean(sims)
-  Dk_sd   <- sd(sims)
-  ci <- quantile(sims, c(0.025, 0.5, 0.975))
-  cat(sprintf("Dk(mean) = %.6f, SD = %.6f\n", Dk_mean, Dk_sd))
-  cat(sprintf("2.5%% = %.6f, 50%%(median) = %.6f, 97.5%% = %.6f\n",
-              ci[1], ci[2], ci[3]))
+  sims <- numeric(mc_n)
+  for (j in seq_len(mc_n)) {
+    A_draw <- runif(1, min = A_ci[1], max = A_ci[2])
+    sims[j] <- calc_once(theta_vec, A_draw)
+  }
+  q <- quantile(sims, c(0.025, 0.5, 0.975), names = FALSE)
+  cat(q[1], "\n")
+  cat(q[2], "\n")
+  cat(q[3], "\n")
 } else {
-  # 單值：以 theta_mean 套用到所有列
-  theta_vec <- rep(theta_mean, nrow(dat))
-  Dk <- calc_once(theta_vec)
-  cat(sprintf("Dk = %.6f (theta = %.4f 固定值)\n", Dk, theta_mean))
+  # 固定 A_k
+  Dk <- calc_once(theta_vec, A_k)
+  cat(Dk, "\n")
 }

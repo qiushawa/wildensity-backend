@@ -8,6 +8,8 @@ import {CONFIG} from './config/config';
 import logger from './util/logger';
 import cors from 'cors';
 import './common/database';
+import { calculateDensity } from './util/calculate';
+import { DensityCalculation } from 'scheduler'
 
 const app: Application = express();
 const port = CONFIG.PORT;
@@ -58,6 +60,7 @@ app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
 	next();
 });
 
-app.listen(port, () => {
+app.listen(port, async () => {
 	console.log(`http://127.0.0.1:${port}`);
+	DensityCalculation();
 });
