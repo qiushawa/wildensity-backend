@@ -16,4 +16,6 @@ const UPDATE_ACTIVITY = {
 	task: 'updateActivityTask',
 	description: '更新活動計算結果'
 };
-export { CONFIG, UTF8_BOM, CSV_HEADER, UPDATE_ACTIVITY }
+
+const CAMERA_RAD = 2.0944 // 相機偵測弧度 (±60°)
+export { CONFIG, UTF8_BOM, CSV_HEADER, UPDATE_ACTIVITY, CAMERA_RAD }
