@@ -18,6 +18,6 @@
       "@/*": ["*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "src/scheduler.ts"],
   "exclude": ["node_modules", "dist"]
 }
