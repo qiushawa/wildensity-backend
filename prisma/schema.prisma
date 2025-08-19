@@ -68,13 +68,14 @@ model RadarTrackPoint {
 }
 
 model Activity { //202508
-    month       String   @id
     species_id  Int
+    month       String
     activity_peak Float
     ci_lower      Float
     ci_upper      Float
 
     species      Species @relation(fields: [species_id], references: [species_id])
+    @@id([month, species_id])
 }
 
 enum CameraStatus {
