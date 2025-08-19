@@ -73,12 +73,17 @@ read_from_database <- function(month, species_id) {
 
     if (db_name == "") stop("環境變數 DB_NAME 未設定")
 
-    con <- dbConnect(MariaDB(), 
-                     host = db_host, 
-                     port = db_port,
-                     user = db_user,
-                     password = db_password,
-                     dbname = db_name)
+    con <- tryCatch(
+        dbConnect(MariaDB(), 
+                  host = db_host, 
+                  port = db_port,
+                  user = db_user,
+                  password = db_password,
+                  dbname = db_name),
+        error = function(e) {
+            stop(paste("資料庫連線失敗:", e$message))
+        }
+    )
     on.exit(dbDisconnect(con))
 
     query <- paste0(
