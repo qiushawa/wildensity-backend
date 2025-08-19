@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { calculateActivity, calculateDensity } from "util/calculate"; // 你剛寫的函式
 import { CRON_A, CRON_D } from "./config/config";
 
-// 每天凌晨 00:30 執行
+
 export const DensityCalculation = () => {
     cron.schedule(CRON_A, async () => {
         try {

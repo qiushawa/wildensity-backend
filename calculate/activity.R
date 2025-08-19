@@ -1,76 +1,97 @@
-# calculate_activity.R
+suppressMessages(if (!require(activity)) install.packages("activity", repos = "http://cran.us.r-project.org"))
+suppressMessages(if (!require(optparse)) install.packages("optparse", repos = "http://cran.us.r-project.org"))
+suppressMessages(if (!require(RMariaDB)) install.packages("RMariaDB", repos = "http://cran.us.r-project.org"))
+suppressMessages(if (!require(urltools)) install.packages("urltools", repos = "http://cran.us.r-project.org"))
+suppressMessages(if (!require(dotenv)) install.packages("dotenv", repos = "http://cran.us.r-project.org"))
 
-suppressMessages(library(activity))
-suppressMessages(library(optparse))
+# 載入 .env
+dotenv::load_dot_env(".env")
 
 # -------------------- 主程式 --------------------
 main <- function() {
     opt <- parse_options()
-    validate_input(opt$input)
+    validate_input(opt$month, opt$species)
 
-    file_info <- parse_file_info(opt$input)
-    df <- read_input_csv(opt$input)
+    file_info <- parse_month_info(opt$month)
+    df <- read_from_database(opt$month, opt$species)
     validate_columns(df)
     df$timestamp <- parse_timestamps(df$appearance_time)
     validate_counts(df$count)
 
     time_rad <- compute_radians(df)
-    expanded <- expand_counts(time_rad, df$count)
+    activity_data <- prepare_activity_data(time_rad, df$count)
 
-    result <- calculate_activity(file_info$month_str, expanded)
-    ak <- result$activity_peak
-
-
-    write_result_csv(opt$output, result)
+    result <- calculate_activity(file_info$month_str, activity_data)
 
     cat(result$activity_peak, "\n")
     cat(result$ci_lower, "\n")
     cat(result$ci_upper, "\n")
 
+    # 寫入 Activity 表
+    write_activity_to_db(
+        month_str = file_info$month_str,
+        species_id = opt$species,
+        activity_peak = result$activity_peak,
+        ci_lower = result$ci_lower,
+        ci_upper = result$ci_upper
+    )
 }
 
 # -------------------- 解析與驗證 --------------------
 parse_options <- function() {
     option_list <- list(
-        make_option(c("-i", "--input"), type = "character", help = "輸入 CSV 路徑"),
-        make_option(c("-o", "--output"), type = "character", help = "輸出結果 CSV 路徑")
+        make_option(c("-m", "--month"), type = "character", help = "輸入月份 (格式: YYYY-MM)"),
+        make_option(c("-s", "--species"), type = "integer", help = "物種編號 (species_id)")
     )
     parse_args(OptionParser(option_list = option_list))
 }
 
-validate_input <- function(input_path) {
-    if (!file.exists(input_path)) {
-        stop("輸入檔案不存在：", input_path)
+validate_input <- function(month, species_id) {
+    if (!grepl("^\\d{4}-\\d{2}$", month)) {
+        stop("月份格式錯誤：應為 YYYY-MM")
+    }
+    if (!is.numeric(species_id) || species_id <= 0) {
+        stop("物種編號錯誤：需為正整數")
     }
 }
 
-parse_file_info <- function(input_path) {
-    file_path <- normalizePath(input_path, winslash = "/")
-    path_parts <- strsplit(file_path, "/")[[1]]
-    file_name <- path_parts[length(path_parts)]
-    year <- path_parts[length(path_parts) - 1]
-
-    if (length(path_parts) >= 4 &&
-        path_parts[length(path_parts) - 3] == "records" &&
-        nchar(path_parts[length(path_parts) - 2]) > 0 &&
-        nchar(year) == 4 && grepl("^\\d{4}$", year) &&
-        grepl("^\\d{2}\\.csv$", file_name)) {
-        month <- sub("\\.csv$", "", file_name)
-        month_str <- paste(year, month, sep = "-")
-        list(year = year, month = month, month_str = month_str)
-    } else {
-        stop("輸入檔案路徑不符合預期格式（應為 .../records/SS/YYYY/MM.csv）")
-    }
+parse_month_info <- function(month) {
+    parts <- strsplit(month, "-")[[1]]
+    year <- parts[1]
+    month_num <- parts[2]
+    month_str <- month
+    list(year = year, month = month_num, month_str = month_str)
 }
 
 # -------------------- 讀取與驗證資料 --------------------
-read_input_csv <- function(path) {
-    first_bytes <- readBin(path, what = "raw", n = 3)
-    if (identical(first_bytes, charToRaw("\xef\xbb\xbf"))) {
-        read.csv(path, fileEncoding = "UTF-8-BOM")
-    } else {
-        read.csv(path)
-    }
+read_from_database <- function(month, species_id) {
+    db_host <- Sys.getenv("DB_HOST", "127.0.0.1")
+    db_port <- as.integer(Sys.getenv("DB_PORT", "3306"))
+    db_user <- Sys.getenv("DB_USER", "root")
+    db_password <- Sys.getenv("DB_PASSWORD", "")
+    db_name <- Sys.getenv("DB_NAME", "")
+
+    if (db_name == "") stop("環境變數 DB_NAME 未設定")
+
+    con <- dbConnect(MariaDB(), 
+                     host = db_host, 
+                     port = db_port,
+                     user = db_user,
+                     password = db_password,
+                     dbname = db_name)
+    on.exit(dbDisconnect(con))
+
+    query <- paste0(
+        "SELECT start_timestamp AS appearance_time, num_individuals AS count ",
+        "FROM detectionevents ",
+        "WHERE DATE_FORMAT(start_timestamp, '%Y-%m') = '", month, "' ",
+        "AND species_id = ", species_id
+    )
+
+    df <- dbGetQuery(con, query)
+    if (nrow(df) == 0) stop("指定月份或物種無資料")
+
+    df
 }
 
 validate_columns <- function(df) {
@@ -117,16 +138,24 @@ compute_radians <- function(df) {
     radians
 }
 
-expand_counts <- function(radians, counts) {
-    expanded <- rep(radians, counts)
-    if (length(expanded) == 0) {
+# 不展開，直接回傳加權資料
+prepare_activity_data <- function(radians, counts) {
+    if (length(radians) == 0 || length(counts) == 0) {
         stop("無資料可分析：請確認 'count' 欄位內容")
     }
-    expanded
+    list(radians = radians, weights = counts)
 }
 
-calculate_activity <- function(month_str, expanded) {
-    fit <- fitact(expanded, sample = "model", bw = 20, reps = 100)
+calculate_activity <- function(month_str, data) {
+    fit <- suppressWarnings(
+        fitact(
+            data$radians,
+            wt = data$weights,
+            sample = "model",
+            bw = 20,
+            reps = 100
+        )
+    )
     ak <- round(fit@act[1], 5)
     ci_lower <- round(fit@act[3], 5)
     ci_upper <- round(fit@act[4], 5)
@@ -138,22 +167,39 @@ calculate_activity <- function(month_str, expanded) {
         ci_upper = ci_upper
     )
 }
+write_activity_to_db <- function(month_str, species_id, activity_peak, ci_lower, ci_upper) {
+    db_host <- Sys.getenv("DB_HOST", "127.0.0.1")
+    db_port <- as.integer(Sys.getenv("DB_PORT", "3306"))
+    db_user <- Sys.getenv("DB_USER", "root")
+    db_password <- Sys.getenv("DB_PASSWORD", "")
+    db_name <- Sys.getenv("DB_NAME", "")
 
-# -------------------- 寫入結果 --------------------
-write_result_csv <- function(output_path, result) {
-    if (file.exists(output_path)) {
-        existing_data <- read.csv(output_path, fileEncoding = "UTF-8", encoding = "UTF-8-BOM")
-        result <- result[, colnames(existing_data), drop = FALSE]
-        existing_data <- existing_data[existing_data$month != result$month, ]
-        combined <- rbind(existing_data, result)
-    } else {
-        combined <- result
-    }
+    con <- dbConnect(MariaDB(),
+                     host = db_host,
+                     port = db_port,
+                     user = db_user,
+                     password = db_password,
+                     dbname = db_name)
+    on.exit(dbDisconnect(con))
 
-    con <- file(output_path, open = "wb")
-    write.csv(combined, file = con, row.names = FALSE, fileEncoding = "UTF-8", quote = FALSE)
-    close(con)
+    # month 作為主鍵，直接存 YYYYMM 字串
+    month_key <- gsub("-", "", month_str)  # 202508
+
+    query <- "
+        INSERT INTO Activity (month, species_id, activity_peak, ci_lower, ci_upper)
+        VALUES (?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            activity_peak = VALUES(activity_peak),
+            ci_lower = VALUES(ci_lower),
+            ci_upper = VALUES(ci_upper),
+            species_id = VALUES(species_id)
+    "
+    
+    dbExecute(con, query, params = list(month_key, species_id, activity_peak, ci_lower, ci_upper))
+
+    message("已成功寫入或更新 Activity 表")
 }
+
 
 # -------------------- 執行 --------------------
 main()

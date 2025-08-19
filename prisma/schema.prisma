@@ -10,14 +10,14 @@ datasource db {
 model Camera {
     camera_id            Int
     area_id              Int
-    camera_name          String?             @db.VarChar(50)
-    location_description String?             @db.VarChar(50)
+    camera_name          String?           @db.VarChar(50)
+    location_description String?           @db.VarChar(50)
     longitude            Float?
     latitude             Float?
     sd_card_capacity     Int
     sd_card_used_space   Int
-    status               CameraStatus?       @default(LOCATION_UNKNOWN)
-    area                 Area                @relation("AreaToCamera", fields: [area_id], references: [area_id])
+    status               CameraStatus?     @default(LOCATION_UNKNOWN)
+    area                 Area              @relation("AreaToCamera", fields: [area_id], references: [area_id])
     detection_events     DetectionEvents[]
 
     @@id([camera_id, area_id])
@@ -31,39 +31,50 @@ model Area {
 }
 
 model Species {
-    species_id         Int                 @id @default(autoincrement())
-    species_name       String              @db.VarChar(100)
-    detection_events   DetectionEvents[]
+    species_id       Int               @id @default(autoincrement())
+    species_name     String            @db.VarChar(100)
+    detection_events DetectionEvents[]
+    activity         Activity[]
 }
 
 model DetectionEvents {
-    event_id            Int      @id @default(autoincrement())
+    event_id Int @id @default(autoincrement())
 
-    camera_id           Int
-    area_id             Int
-    species_id          Int
+    camera_id  Int
+    area_id    Int
+    species_id Int
 
-    start_timestamp     DateTime? @db.DateTime(0)
-    end_timestamp       DateTime? @db.DateTime(0)
+    start_timestamp DateTime? @db.DateTime(0)
+    end_timestamp   DateTime? @db.DateTime(0)
 
     duration_s          Float? // 事件持續時間（秒）
     movement_distance_m Float? // 事件移動距離（公尺）
-    num_individuals     Int      @default(1) // 事件中個體數量
+    num_individuals     Int    @default(1) // 事件中個體數量
 
-    camera              Camera   @relation(fields: [camera_id, area_id], references: [camera_id, area_id])
-    species             Species  @relation(fields: [species_id], references: [species_id])
+    camera  Camera  @relation(fields: [camera_id, area_id], references: [camera_id, area_id])
+    species Species @relation(fields: [species_id], references: [species_id])
 
-    track_points        RadarTrackPoint[]
+    track_points RadarTrackPoint[]
 }
 
 model RadarTrackPoint {
-    track_point_id Int      @id @default(autoincrement())
+    track_point_id Int @id @default(autoincrement())
     event_id       Int
 
-    coordinate_x   Float
-    coordinate_y   Float
+    coordinate_x Float
+    coordinate_y Float
 
-    event          DetectionEvents @relation(fields: [event_id], references: [event_id])
+    event DetectionEvents @relation(fields: [event_id], references: [event_id])
+}
+
+model Activity { //202508
+    month       String   @id
+    species_id  Int
+    activity_peak Float
+    ci_lower      Float
+    ci_upper      Float
+
+    species      Species @relation(fields: [species_id], references: [species_id])
 }
 
 enum CameraStatus {
