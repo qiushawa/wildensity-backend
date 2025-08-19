@@ -50,7 +50,7 @@ validate_input <- function(month, species_id) {
     if (!grepl("^\\d{4}-\\d{2}$", month)) {
         stop("月份格式錯誤：應為 YYYY-MM")
     }
-    if (!is.numeric(species_id) || species_id <= 0) {
+    if (!is.numeric(species_id) || species_id <= 0 || species_id != as.integer(species_id)) {
         stop("物種編號錯誤：需為正整數")
     }
 }
