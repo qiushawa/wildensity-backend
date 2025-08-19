@@ -145,8 +145,10 @@ compute_radians <- function(df) {
 
 # 不展開，直接回傳加權資料
 prepare_activity_data <- function(radians, counts) {
-    if (length(radians) == 0 || length(counts) == 0) {
-        stop("無資料可分析：請確認 'count' 欄位內容")
+    if (is.null(radians) || is.null(counts) ||
+        length(radians) == 0 || length(counts) == 0 ||
+        any(is.na(radians)) || any(is.na(counts))) {
+        stop("無資料可分析：請確認 'radians' 與 'count' 欄位內容，並確保無 NA 或 NULL 值")
     }
     list(radians = radians, weights = counts)
 }
