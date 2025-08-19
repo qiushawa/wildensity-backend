@@ -17,28 +17,13 @@ export async function calculateActivity(speciesId: number) {
     const now = new Date();
     let year = now.getFullYear().toString();
     let month = String(now.getMonth() + 1).padStart(2, '0');
-    if (now.getDate() === 1) {
-        // 如果是每月第一天，則計算上個月的活動
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        year = lastMonth.getFullYear().toString();
-        month = String(lastMonth.getMonth() + 1).padStart(2, '0');
-    }
-
-    // 構建輸入和輸出路徑
-    const speciesIdStr = speciesId.toString().padStart(2, '0');
-    const inCsv = path.join('reports', 'records', speciesIdStr, year, `${month}.csv`);
-    const outdir = path.join('reports', 'activity', speciesIdStr);
-    // if reports/activity/{speciesId} 未創建
-    if (!fs.existsSync(outdir)) {
-        fs.mkdirSync(outdir, { recursive: true });
-    }
-    const outCsv = path.join(outdir, `${year}.csv`);
+    
     const script = path.resolve('./calculate/activity.R');
-    const cmd = `Rscript ${script} -i ${inCsv} -o ${outCsv}`;
+    const cmd = `Rscript ${script} -m ${year}-${month} -s ${speciesId}`;
 
     const { stdout, stderr } = await exec(cmd);
     if (stderr) throw new Error(`Rscript stderr: ${stderr}`);
-
+    
     const [ak, ci_lower, ci_upper] = stdout
         .trim()
         .split(/\s+/)
@@ -47,23 +32,17 @@ export async function calculateActivity(speciesId: number) {
 }
 
 
-export async function calculateDensity(
-    csvFile: string,
-    v_k: number,
-    n_cam: number,
-    A_ci: { lower: number; upper: number },
-): Promise<DensityResult> {
+export async function calculateDensity(area_id: number, species_id: number): Promise<DensityResult> {
     const script = path.resolve("./calculate/density.R"); // R 腳本路徑
     const args: string[] = [
         script,
-        "-a", csvFile,
-        "-v", v_k.toString(),
-        "-n", n_cam.toString(),
-        "-t", CAMERA_RAD.toString(),
-        "--A_ci", `${A_ci.lower},${A_ci.upper}`
+        "-a", area_id.toString(),
+        "-s", species_id.toString(),
+        "-t", CAMERA_RAD.toString()
     ];
 
     const cmd = `Rscript ${args.map(a => `"${a}"`).join(" ")}`;
+    console.log(`執行命令: ${cmd}`);
     const { stdout, stderr } = await exec(cmd);
 
     if (stderr) throw new Error(`Rscript stderr: ${stderr}`);
