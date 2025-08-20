@@ -8,6 +8,9 @@ cameraRouter.route('/')
     .get(controller.getAllCamera.bind(controller))
     .post(controller.createCamera.bind(controller));
 
+cameraRouter.route('/update-status')
+    .patch(controller.updateCamerasStatus.bind(controller));
+
 cameraRouter.route('/:cameraId')
     .get(controller.getCamera.bind(controller))
     .delete(controller.deleteCamera.bind(controller))
