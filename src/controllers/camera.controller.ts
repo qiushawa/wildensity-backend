@@ -165,8 +165,8 @@ export class CameraController extends CoordinatesController {
             });
             const results = await Promise.allSettled(updatePromises);
 
-            const updatedCameras = [];
-            const failedCameras = [];
+            const updatedCameras: any[] = [];
+            const failedCameras: { cameraId: any; error: string; }[] = [];
 
             results.forEach((result, idx) => {
                 const camera = cameras[idx];
