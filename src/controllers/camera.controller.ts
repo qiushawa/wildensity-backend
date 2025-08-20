@@ -163,8 +163,27 @@ export class CameraController extends CoordinatesController {
                     data: { status, sd_card_used_space: sdCardUsedSpace }
                 });
             });
-            await Promise.all(updatePromises);
-            return successResponse(res, RESPONSE_CODE.SUCCESS, { updatedCameras: cameras });
+            const results = await Promise.allSettled(updatePromises);
+
+            const updatedCameras = [];
+            const failedCameras = [];
+
+            results.forEach((result, idx) => {
+                const camera = cameras[idx];
+                if (result.status === "fulfilled") {
+                    updatedCameras.push(camera);
+                } else {
+                    failedCameras.push({
+                        cameraId: camera.cameraId,
+                        error: result.reason?.message || "Unknown error"
+                    });
+                }
+            });
+
+            return successResponse(res, RESPONSE_CODE.SUCCESS, {
+                updatedCameras,
+                failedCameras
+            });
         } catch (error) {
             console.error("更新相機狀態時發生錯誤：", error);
             return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "更新相機狀態失敗：");
