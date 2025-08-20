@@ -16,6 +16,8 @@ model Camera {
     latitude             Float?
     sd_card_capacity     Int
     sd_card_used_space   Int
+    // 上次啟動時間
+    last_reboot_time     DateTime          @db.DateTime(0)
     status               CameraStatus?     @default(LOCATION_UNKNOWN)
     area                 Area              @relation("AreaToCamera", fields: [area_id], references: [area_id])
     detection_events     DetectionEvents[]
@@ -24,10 +26,11 @@ model Camera {
 }
 
 model Area {
-    area_id   Int      @id @default(autoincrement())
-    area_name String?  @db.VarChar(100)
+    area_id   Int       @id @default(autoincrement())
+    area_name String?   @db.VarChar(100)
     boundary  Json?
-    cameras   Camera[] @relation("AreaToCamera")
+    cameras   Camera[]  @relation("AreaToCamera")
+    density   Density[]
 }
 
 model Species {
@@ -35,6 +38,7 @@ model Species {
     species_name     String            @db.VarChar(100)
     detection_events DetectionEvents[]
     activity         Activity[]
+    density          Density[]
 }
 
 model DetectionEvents {
@@ -67,15 +71,27 @@ model RadarTrackPoint {
     event DetectionEvents @relation(fields: [event_id], references: [event_id])
 }
 
-model Activity { //202508
-    species_id  Int
-    month       String
+model Activity {
+    species_id    Int
+    month         String
     activity_peak Float
     ci_lower      Float
     ci_upper      Float
 
-    species      Species @relation(fields: [species_id], references: [species_id])
+    species Species @relation(fields: [species_id], references: [species_id])
+
     @@id([month, species_id])
+}
+
+model Density {
+    density_id Int    @id @default(autoincrement())
+    species_id Int
+    area_id    Int
+    month      String
+    density    Float
+
+    species Species @relation(fields: [species_id], references: [species_id])
+    area    Area    @relation(fields: [area_id], references: [area_id])
 }
 
 enum CameraStatus {

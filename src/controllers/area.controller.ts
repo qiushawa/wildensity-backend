@@ -125,6 +125,4 @@ async getAllAreas(req: Request, res: Response): Promise<void> {
         });
         return successResponse(res, RESPONSE_CODE.SUCCESS, devices);
     }
-
-
 }
