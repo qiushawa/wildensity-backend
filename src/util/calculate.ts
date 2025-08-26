@@ -23,8 +23,8 @@ export async function calculateActivity(speciesId: number) {
 
     const { stdout, stderr } = await exec(cmd);
     if (stderr) throw new Error(`Rscript stderr: ${stderr}`);
-    
-    const [ak, ci_lower, ci_upper] = stdout
+    console.log(`Rscript stdout: ${stdout}`);
+    const [ci_lower, ci_upper, ak] = stdout
         .trim()
         .split(/\s+/)
         .map(Number);

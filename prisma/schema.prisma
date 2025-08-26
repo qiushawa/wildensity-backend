@@ -16,13 +16,25 @@ model Camera {
     latitude             Float?
     sd_card_capacity     Int
     sd_card_used_space   Int
-    // 上次啟動時間
-    last_reboot_time     DateTime          @db.DateTime(0)
     status               CameraStatus?     @default(LOCATION_UNKNOWN)
     area                 Area              @relation("AreaToCamera", fields: [area_id], references: [area_id])
     detection_events     DetectionEvents[]
+    status_events        CameraStatusEvent[]
 
     @@id([camera_id, area_id])
+}
+
+model CameraStatusEvent{
+    event_id Int @id @default(autoincrement())
+
+    camera_id Int
+    area_id   Int
+
+    status    CameraStatus
+    last_update_time   DateTime @default(now())
+    last_confirmed_time DateTime @db.DateTime(0)
+
+    camera Camera @relation(fields: [camera_id, area_id], references: [camera_id, area_id])
 }
 
 model Area {
