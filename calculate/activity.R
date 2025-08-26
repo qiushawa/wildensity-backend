@@ -33,7 +33,7 @@ main <- function() {
   write_activity_to_db(con, file_info$month_str, opt$species, result$activity_peak, result$ci_lower, result$ci_upper)
   
   # 輸出結果供 Node.js 解析
-  cat(sprintf("%f\n%f\n%f\n", result$ci_lower, result$activity_peak, result$ci_upper))
+  cat(sprintf("%f\n%f\n%f\n", result$ci_lower, result$ci_upper, result$activity_peak))
 }
 
 # -------------------- 資料庫連線 --------------------
