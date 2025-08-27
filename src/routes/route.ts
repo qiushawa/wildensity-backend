@@ -1,6 +1,5 @@
 import e, { Router } from 'express'
 import speciesRouter from './species.route'
-import downloadRouter from './download.route'
 import areaRouter from './area.route'
 import { prisma } from '../common/database'
 
@@ -10,7 +9,6 @@ apiRouter.get('/message', (req, res) => {
 })
 
 apiRouter.use('/species', speciesRouter);
-apiRouter.use('/download', downloadRouter);
 apiRouter.use('/areas', areaRouter);
 
 export default apiRouter;
