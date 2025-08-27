@@ -188,6 +188,16 @@ export class CoordinatesController {
             },
             data: { latitude, longitude, location_description, status: "OFFLINE" },
         });
+
+        // 發送相機狀態事件
+        await prisma.cameraStatusEvent.create({
+            data: {
+                camera_id: updatedCamera.camera_id,
+                area_id: updatedCamera.area_id,
+                status: 'OFFLINE',  
+                last_confirmed_time: new Date(),
+            }
+        });
         // 如果更新成功，更新樣區邊界
         if (updatedCamera.area_id) {
             const areaBoundary = await this.calculateAreaBoundary(

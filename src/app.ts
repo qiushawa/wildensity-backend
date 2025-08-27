@@ -61,6 +61,6 @@ app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
 
 app.listen(port, async () => {
 	console.log(`http://127.0.0.1:${port}`);
-	// DensityCalculation();
+	DensityCalculation();
 	ActivityCalculation();
 });

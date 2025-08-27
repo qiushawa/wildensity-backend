@@ -11,8 +11,8 @@ const UTF8_BOM = '\uFEFF';
 const CSV_HEADER = 'record_id,device_id,count,average_speed,appearance_time,leave_time';
 // 任務設定
 
-const CRON_A = '*/10 * * * * *';
-const CRON_D = '*/10 * * * * *';
+const CRON_A = '0 0 0 */7 * *';
+const CRON_D = '0 0 0 1 * *';
 
 const CAMERA_RAD = 2.0944 // 相機偵測弧度 (±60°)
 export { CONFIG, UTF8_BOM, CSV_HEADER, CRON_A, CRON_D, CAMERA_RAD }
