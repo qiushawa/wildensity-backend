@@ -21,38 +21,100 @@ export class AreaController extends CoordinatesController {
         return errorResponse(res, RESPONSE_CODE.NOT_FOUND, "樣區不存在");
     }
 
-async getAllAreas(req: Request, res: Response): Promise<void> {
-    const areas = await prisma.area.findMany({
-        include: {
-            cameras: true, // 包含相機資訊
-        }
-    });
-
-    const areasWithCircles = areas.map(area => {
-        let circle: any = undefined;
-
-        try {
-            // 確保 boundary 存在且為物件
-            if (area.boundary) {
-                const boundary = area.boundary as unknown as GeoJSONPolygon;
-
-                if (boundary?.type === 'Polygon') {
-                    circle = this.polygonToCircleFromGeoJSON(boundary);
-                }
+    async getAllAreas(req: Request, res: Response): Promise<void> {
+        const areas = await prisma.area.findMany({
+            include: {
+                cameras: true, // 包含相機資訊
             }
-        } catch (error) {
-            console.error(`計算樣區 ${area.area_id} 的圓心半徑失敗:`, error);
+        });
+
+        const areasWithCircles = areas.map(area => {
+            let circle: any = undefined;
+
+            try {
+                // 確保 boundary 存在且為物件
+                if (area.boundary) {
+                    const boundary = area.boundary as unknown as GeoJSONPolygon;
+
+                    if (boundary?.type === 'Polygon') {
+                        circle = this.polygonToCircleFromGeoJSON(boundary);
+                    }
+                }
+            } catch (error) {
+                console.error(`計算樣區 ${area.area_id} 的圓心半徑失敗:`, error);
+            }
+
+            return {
+                ...area,
+                circle, // 沒有就 undefined
+            };
+        });
+
+        return successResponse(res, RESPONSE_CODE.SUCCESS, areasWithCircles);
+    }
+    // 獲取所有樣區的詳細資訊及其邊界 
+    async getAllAreasInfo(req: Request, res: Response): Promise<void> {
+        const { month } = req.query as { month?: string };
+        // month: YYYYMM
+        const areas = await prisma.area.findMany(
+            {where: { area_id: { not: undefined } }}
+        );
+        console.log("areas", areas);
+        // 整理成
+
+        // [
+        //     {
+        //         name,
+        //         coordinates: [
+        //             [x, y],
+        //             [x, y],
+        //             [x, y],
+        //             [x, y],
+        //             [x, y]
+        //         ],
+        //         density: [23, 9, null, 0.5]
+        //     }
+        // ]
+
+        const formattedAreas = areas.map(area => ({
+            name: area.area_name,
+            id: area.area_id,
+            coordinates: (area.boundary as unknown as GeoJSONPolygon)?.coordinates[0] || [],
+            density: [] as (number | null)[]
+        }));
+
+        for (const area of formattedAreas) {
+            try {
+                const species = await prisma.species.findMany({
+                    orderBy: { species_id: 'asc' }
+                });
+
+                for (const speciesId of species.map(s => s.species_id)) {
+                    const density = await prisma.density.findFirst({
+                        where: {
+                            area_id: { equals: area.id },
+                            month: month ? String(month) : undefined,
+                            species_id: { equals: speciesId }
+                        },
+
+                    });
+                    if (density) {
+                        area.density.push(density.density);
+                    }
+
+                    else {
+                        area.density.push(null);
+                    }
+
+
+                }
+            } catch (error) {
+                console.error(`獲取樣區 ${area.id} 的密度數據失敗:`, error);
+            }
         }
 
-        return {
-            ...area,
-            circle, // 沒有就 undefined
-        };
-    });
-
-    return successResponse(res, RESPONSE_CODE.SUCCESS, areasWithCircles);
-}
-
+        return successResponse(res, RESPONSE_CODE.SUCCESS, formattedAreas);
+    }
 
     async createArea(req: Request, res: Response): Promise<void> {
         const { areaId, areaName } = req.body;

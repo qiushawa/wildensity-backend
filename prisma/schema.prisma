@@ -48,6 +48,8 @@ model Area {
 model Species {
     species_id       Int               @id @default(autoincrement())
     species_name     String            @db.VarChar(100)
+    color            String?           @db.VarChar(20)
+    enabled          Boolean           @default(true)
     detection_events DetectionEvents[]
     activity         Activity[]
     density          Density[]
@@ -92,7 +94,7 @@ model Activity {
 
     species Species @relation(fields: [species_id], references: [species_id])
 
-    @@id([month, species_id])
+    @@id([species_id])
 }
 
 model Density {

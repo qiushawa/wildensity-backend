@@ -25,7 +25,6 @@ export class CameraController extends CoordinatesController {
     }
 
     async createCamera(req: Request, res: Response): Promise<void> {
-
         const cameraId = parseInt(req.body.cameraId, 10);
         const areaId = parseInt(req.params.areaId, 10);
         const sdCardCapacity = parseInt(req.body.sdCardCapacity, 10);

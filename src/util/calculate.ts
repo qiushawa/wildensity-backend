@@ -38,24 +38,31 @@ export async function calculateDensity(area_id: number, species_id: number): Pro
         script,
         "-a", area_id.toString(),
         "-s", species_id.toString(),
-        "-t", CAMERA_RAD.toString()
+        "-t", CAMERA_RAD.toString(),
+        "-y", "202510"
     ];
 
-    const cmd = `Rscript ${args.map(a => `"${a}"`).join(" ")}`;
+    const cmd = 'Rscript ' + args.map(a => `"${a}"`).join(' ');
     console.log(`執行命令: ${cmd}`);
     const { stdout, stderr } = await exec(cmd);
 
     if (stderr) throw new Error(`Rscript stderr: ${stderr}`);
 
+    // 只提取 Density: 後的數值
+    const match = stdout.match(/Density:\s*([0-9.]+)/);
+    if (match) {
+        return { value: Number(match[1]) };
+    }
+
+    // 若有三個數值（Monte Carlo），則提取
     const numbers = stdout
         .trim()
         .split(/\s+/)
-        .map(Number);
-    if (numbers.length === 1) {
-        return { value: numbers[0] };
-    } else if (numbers.length === 3) {
+        .map(Number)
+        .filter(n => !isNaN(n));
+    if (numbers.length === 3) {
         return { lower: numbers[0], median: numbers[1], upper: numbers[2] };
-    } else {
-        throw new Error(`Unexpected R output: ${stdout}`);
     }
+
+    throw new Error(`Unexpected R output: ${stdout}`);
 }

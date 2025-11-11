@@ -105,7 +105,7 @@ get_detection_data <- function(con, area_id, species_id) {
       COALESCE(SUM(de.movement_distance_m), 0) AS total_movement,
       COALESCE(SUM(de.duration_s), 0) AS total_duration,
       COALESCE(SUM(
-        TIMESTAMPDIFF(
+        TIMESTAMPDIFF(  
           SECOND,
           cse.last_update_time,
           cse.last_confirmed_time
@@ -122,12 +122,18 @@ get_detection_data <- function(con, area_id, species_id) {
   dat <- dbGetQuery(con, query, params = list(species_id, area_id))
   dat <- dat %>%
     mutate(r = 0.008) %>%
-    mutate(across(c(Y, T, total_movement, total_duration, r), 
+    mutate(across(c(Y, T, total_movement, total_duration, r),
                   ~ ifelse(is.na(.), 0, as.numeric(.)))) %>%
     filter(T > 0)
-  if (nrow(dat) == 0) stop("無有效資料列（Y、T、r 不可皆為 NA 或零）")
+  
+  if (nrow(dat) == 0) {
+    warning("⚠️ 無有效資料列（Y、T、r 不可皆為 NA 或零），返回空值")
+    return(NULL)
+  }
+  
   dat
 }
+
 
 # -------------------- 計算函式 --------------------
 calc_v_k <- function(dat) {
@@ -146,6 +152,7 @@ calc_density_fixed <- function(dat, n_cam, theta_val, A_k_val, v_k) {
   cat("n_cam:", n_cam, "\n")
   cat("sum:", sum((dat$Y / dat$T) * (pi / (dat$r * v_k * A_k_val * (2 + theta_vec)))) / n_cam, "\n")
   sum((dat$Y / dat$T) * (pi / (dat$r * v_k * A_k_val * (2 + theta_vec)))) / n_cam
+
 }
 
 # -------------------- 主程式 --------------------

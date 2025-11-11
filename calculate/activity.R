@@ -97,7 +97,7 @@ fetch_and_validate_data <- function(con, month, species_id) {
      AND species_id = %d",
     month, species_id
   )
-  
+  cat("Executing query:\n", month, "\n")
   df <- tryCatch(
     dbGetQuery(con, query),
     error = function(e) {

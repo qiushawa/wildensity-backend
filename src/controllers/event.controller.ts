@@ -11,7 +11,7 @@ export class EventController {
 
         if (!areaId || !cameraId || !speciesId) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "缺少必要欄位");
-        }
+        }   
 
         try {
             const event = await prisma.detectionEvents.create({
