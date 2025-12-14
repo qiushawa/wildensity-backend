@@ -2,7 +2,7 @@ import { prisma } from "../common/database";
 import { RESPONSE_CODE } from "../common/code";
 import { errorResponse, successResponse } from "../common/response";
 import { Request, Response } from "express";
-import logger from "../util/logger";
+import logger from "../logger";
 import { CoordinatesController } from "./coordinates.controller";
 interface GeoJSONPolygon {
     type: "Polygon";

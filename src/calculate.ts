@@ -1,9 +1,10 @@
-import { promisify } from 'util';
+
 import { exec as _exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { prisma } from '../common/database';
+import { prisma } from './common/database';
 import { CAMERA_RAD } from '@/config/config';
+import { promisify } from 'node:util';
 interface DensityResult {
     value?: number; // 固定 A_k
     lower?: number; // Monte Carlo 2.5%
@@ -39,7 +40,7 @@ export async function calculateDensity(area_id: number, species_id: number): Pro
         "-a", area_id.toString(),
         "-s", species_id.toString(),
         "-t", CAMERA_RAD.toString(),
-        "-y", "202510"
+        "-y", "202511"
     ];
 
     const cmd = 'Rscript ' + args.map(a => `"${a}"`).join(' ');

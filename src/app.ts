@@ -1,14 +1,13 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import 'reflect-metadata';
-import bodyParser from 'body-parser';
 import apiRouter from './routes/route';
 import { errorResponse } from './common/response';
 import { RESPONSE_CODE } from './common/code';
-import {CONFIG} from './config/config';
-import logger from './util/logger';
+import { CONFIG } from './config/config';
+import logger from 'logger';
 import cors from 'cors';
 import './common/database';
-import { DensityCalculation, ActivityCalculation } from 'scheduler'
+import { DensityCalculation, ActivityCalculation } from './scheduler'
 
 const app: Application = express();
 const port = CONFIG.PORT;
@@ -21,7 +20,7 @@ app.use(
 		optionsSuccessStatus: 200
 	})
 );
-app.use(bodyParser.json());
+app.use(express.json());
 app.set('view engine', 'pug');
 // logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
