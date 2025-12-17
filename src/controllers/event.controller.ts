@@ -27,7 +27,7 @@ export class EventController {
             });
 
 
-            return successResponse(res, RESPONSE_CODE.CREATED, event);
+            await res.status(201).send(event.event_id);
         } catch (error) {
             console.error(error);
             return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "無法開始事件");
@@ -117,6 +117,46 @@ export class EventController {
         } catch (error) {
             console.error(error);
             return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "結束事件失敗");
+        }
+    }
+    async getEvents(req: Request, res: Response): Promise<void> {
+        const { areaId } = req.params;
+        const { cameraId, page = '1', pageSize = '10' } = req.query;
+
+        const pageNum = parseInt(page as string, 10);
+        const sizeNum = parseInt(pageSize as string, 10);
+        const skip = (pageNum - 1) * sizeNum;
+
+        try {
+            const whereClause: any = {
+                area_id: parseInt(areaId, 10),
+            };
+            if (cameraId) {
+                whereClause.camera_id = parseInt(cameraId as string, 10);
+            }
+
+            const [events, total] = await Promise.all([
+                prisma.detectionEvents.findMany({
+                    where: whereClause,
+                    skip,
+                    take: sizeNum,
+                    orderBy: { start_timestamp: 'desc' },
+                }),
+                prisma.detectionEvents.count({ where: whereClause }),
+            ]);
+
+            return successResponse(res, RESPONSE_CODE.SUCCESS, {
+                events,
+                pagination: {
+                    total,
+                    page: pageNum,
+                    pageSize: sizeNum,
+                    totalPages: Math.ceil(total / sizeNum),
+                },
+            });
+        } catch (error) {
+            console.error(error);
+            return errorResponse(res, RESPONSE_CODE.INTERNAL_SERVER_ERROR, "無法取得事件紀錄");
         }
     }
 }

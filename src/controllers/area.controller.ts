@@ -118,6 +118,7 @@ export class AreaController extends CoordinatesController {
 
     async createArea(req: Request, res: Response): Promise<void> {
         const { areaId, areaName } = req.body;
+        console.log("Creating area:", areaId, areaName);
         if (!areaId) {
             return errorResponse(res, RESPONSE_CODE.BAD_REQUEST, "樣區ID是必需的");
         }

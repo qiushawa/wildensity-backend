@@ -8,6 +8,7 @@ import logger from 'logger';
 import cors from 'cors';
 import './common/database';
 import { DensityCalculation, ActivityCalculation } from './scheduler'
+import { startTcpGateway } from './tcpGateway';
 
 const app: Application = express();
 const port = CONFIG.PORT;
@@ -40,7 +41,10 @@ app.use('/public', express.static('src/public'));
 
 // API 路由
 app.use('/api', apiRouter);
-
+app.post('/', (req: Request, res: Response) => {
+	console.log(req.body.msg);
+	res.send('Wildlife Backend API');
+});
 
 
 app.use(function (err: Error, req: Request, res: Response, next: NextFunction) {
@@ -62,4 +66,7 @@ app.listen(port, async () => {
 	console.log(`http://127.0.0.1:${port}`);
 	DensityCalculation();
 	ActivityCalculation();
+
+	// 啟動 TCP Gateway
+	startTcpGateway();
 });
